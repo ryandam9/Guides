@@ -1,0 +1,117 @@
+name: shellcheck
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/**.sh"
+      - ".github/workflows/shellcheck.yml"
+  pull_request:
+    paths:
+      - "scripts/**.sh"
+      - ".github/workflows/shellcheck.yml"
+
+jobs:
+  lint-and-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        run: shellcheck -S warning scripts/*.sh
+
+      - name: smoke test (install, idempotence, uninstall)
+        run: |
+          set -euo pipefail
+          export HOME="$(mktemp -d)"
+
+          bash scripts/terminal-bootstrap.sh
+          lines_after_first="$(wc -l < "$HOME/.bashrc")"
+
+          bash scripts/terminal-bootstrap.sh
+          grep -q "already up to date" "$HOME/terminal-bootstrap.log"
+          [ "$(wc -l < "$HOME/.bashrc")" = "$lines_after_first" ]
+
+          bash -n "$HOME/.terminal-bootstrap-theme.sh"
+
+          bash scripts/terminal-bootstrap.sh --uninstall
+          ! grep -q TERMINAL_BOOTSTRAP "$HOME/.bashrc"
+          [ ! -f "$HOME/.terminal-bootstrap-theme.sh" ]
+
+      - name: unknown options are rejected
+        run: |
+          set -euo pipefail
+          export HOME="$(mktemp -d)"
+          rc=0; bash scripts/terminal-bootstrap.sh --uninstal || rc=$?
+          [ "$rc" = 2 ]
+          [ ! -f "$HOME/.terminal-bootstrap-theme.sh" ]   # typo must not install
+
+      - name: broken managed markers are refused
+        run: |
+          set -euo pipefail
+          export HOME="$(mktemp -d)"
+          printf '# user stuff\n# >>> TERMINAL_BOOTSTRAP >>>\n# orphan start\n# user tail\n' > "$HOME/.bashrc"
+          rc=0; bash scripts/terminal-bootstrap.sh || rc=$?
+          [ "$rc" = 1 ]
+          grep -q "user tail" "$HOME/.bashrc"             # nothing truncated
+
+      - name: sourcing preserves caller shell options
+        run: |
+          set -euo pipefail
+          export HOME="$(mktemp -d)"
+          bash -c 'set -e; source scripts/terminal-bootstrap.sh >/dev/null; case $- in *e*) exit 0;; *) exit 1;; esac'
+          bash -c 'source scripts/terminal-bootstrap.sh >/dev/null; case $- in *e*) exit 1;; *) exit 0;; esac'
+
+      - name: dry-run never mutates HOME or the filesystem
+        run: |
+          set -euo pipefail
+          out="$(HOME=/nonexistent-ci bash -c 'source scripts/terminal-bootstrap.sh --dry-run >/dev/null 2>&1; echo "$HOME"')"
+          [ "$out" = "/nonexistent-ci" ]
+          [ ! -d "/var/tmp/terminal-home-$(id -un)" ]
+
+      - name: uninstall reports failure truthfully
+        run: |
+          set -euo pipefail
+          export HOME="$(mktemp -d)"
+          bash scripts/terminal-bootstrap.sh
+          sed -i '/<<< TERMINAL_BOOTSTRAP <<</d' "$HOME/.bashrc"   # orphan the start marker
+          rc=0; bash scripts/terminal-bootstrap.sh --uninstall || rc=$?
+          [ "$rc" = 1 ]
+
+      - name: hadoop helpers compose correct commands (mock CLIs)
+        run: |
+          set -euo pipefail
+          export HOME="$(mktemp -d)"
+          bash scripts/terminal-bootstrap.sh
+          mocks="$(mktemp -d)"
+          for c in beeline yarn oozie; do
+            printf '#!/bin/bash\necho "%s $*"\n' "$c" > "$mocks/$c"; chmod +x "$mocks/$c"
+          done
+          printf '#!/bin/bash\necho "hbase $*"; cat | sed "s/^/STDIN: /"\n' > "$mocks/hbase"; chmod +x "$mocks/hbase"
+          run(){ bash -i -c "PATH=\"$mocks:\$PATH\"; export BEELINE_URL='jdbc:hive2://h:1/d' OOZIE_URL='http://o:11000/oozie'; $1" 2>/dev/null; }
+          run 'blq "SELECT 1"' | grep -q -- '--silent=true --outputformat=table -e SELECT 1'
+          run 'blcsv "SELECT 1"' | grep -q -- '--outputformat=csv2 --showHeader=true'
+          run 'yarn_status app_1' | grep -q 'application -status app_1'
+          run 'yarn_kill app_1 <<< y' | grep -q 'application -kill app_1'
+          run 'yarn_kill app_1 <<< n; echo rc=$?' | grep -q 'rc=1'
+          run 'oz_rerun 0001-wf <<< y' | grep -q -- '-rerun 0001-wf -Doozie.wf.rerun.failnodes=true'
+          run 'oz_jobs' | grep -q -- 'jobs -oozie http://o:11000/oozie -len 20'
+          run 'hb_scan t 5' | grep -q "STDIN: scan 't', {LIMIT => 5}"
+          # guards: missing env and missing CLI fail with friendly errors
+          rc=0; bash -i -c "PATH=\"$mocks:\$PATH\"; unset BEELINE_URL; blq x" 2>/dev/null || rc=$?
+          [ "$rc" = 2 ]
+          rc=0; bash -i -c "hb_status" 2>/dev/null || rc=$?   # hbase absent on runners
+          [ "$rc" = 127 ]
+
+      - name: xml helpers extract and search correctly
+        run: |
+          set -euo pipefail
+          export HOME="$(mktemp -d)"
+          bash scripts/terminal-bootstrap.sh
+          w="$(mktemp -d)"
+          printf '<?xml version="1.0"?>\n<r xmlns:m="http://x/y"><m:o id="7"><m:name>acme</m:name></m:o></r>\n' > "$w/t.xml"
+          out="$(bash -i -c "cd $w && xmlvalue t.xml name && xmlattr t.xml o id && xmlcount t.xml o" 2>/dev/null)"
+          [ "$out" = "$(printf 'acme\n7\n1')" ]
+          bash -i -c "cd $w && xmlfind t.xml acme" 2>/dev/null | grep -q "/r/o/name = acme"
+          rc=0; bash -i -c "cd $w && xmlvalue t.xml missing" 2>/dev/null || rc=$?
+          [ "$rc" = 1 ]

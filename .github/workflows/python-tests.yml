@@ -1,0 +1,25 @@
+name: python-tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/notebook_style.py"
+      - "tests/**"
+      - ".github/workflows/python-tests.yml"
+  pull_request:
+    paths:
+      - "scripts/notebook_style.py"
+      - "tests/**"
+      - ".github/workflows/python-tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pandas plotly ipython jinja2
+      - run: python tests/test_notebook_style.py
