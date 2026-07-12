@@ -303,6 +303,32 @@ def test_show_truncates_and_reports():
     assert last_css().count("<tr>") >= 1000
 
 
+def test_show_sno_replaces_index():
+    CAPTURED.clear()
+    df = pd.DataFrame({"a": [10, 20, 30]}, index=[7, 8, 9])
+    ns.show(df)
+    out = last_css()
+    assert ">sno<" in out                       # sno column rendered
+    assert ">1<" in out and ">3<" in out        # numbered from 1
+    assert "<th>7</th>" not in out              # real index hidden
+    assert df.columns.tolist() == ["a"]         # original not modified
+
+    CAPTURED.clear()
+    ns.show(df, sno=False)                      # opt out: index as before
+    out = last_css()
+    assert ">sno<" not in out and "<th>7</th>" in out
+
+
+def test_show_sno_with_highlights():
+    CAPTURED.clear()
+    ns.show(HDF, highlights={"col1": {"value": "val1", "color": "#fffeee"}})
+    out = last_css()
+    assert ">sno<" in out
+    assert "background-color: #fffeee" in out   # highlight still applied
+    # Styler index cells are gone (blank data cells may remain)
+    assert 'class="row_heading' not in out
+
+
 def test_show_escapes_title():
     CAPTURED.clear()
     ns.show(DF, title='<script>alert("x")</script> & more')

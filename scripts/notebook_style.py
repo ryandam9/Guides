@@ -13,7 +13,7 @@ Everything importable, grouped by job:
 
         # tables
         show,               # styled scrollable preview (title, max_rows,
-                            # highlights)
+                            # highlights, 1-based sno column)
         highlight_matches,  # color matching cells per column/value rules
         as_strings,         # cast a pandas frame to strings for display
 
@@ -1032,7 +1032,8 @@ def donut_chart(df, labels=None, values=None, title=None, max_slices=6,
 # Helpers
 # ---------------------------------------------------------------------------
 
-def show(df, height=420, title=None, max_rows=500, highlights=None):
+def show(df, height=420, title=None, max_rows=500, highlights=None,
+         sno=True):
     """Display a DataFrame in its own fixed-height scroll box.
 
     title      -- optional caption rendered above the table (HTML-escaped)
@@ -1041,17 +1042,31 @@ def show(df, height=420, title=None, max_rows=500, highlights=None):
                   (beware: a 100k-row table will hurt the browser tab).
     highlights -- optional highlight_matches() rules applied to the
                   rendered rows
+    sno        -- hide the DataFrame's real index and lead with a 'sno'
+                  column numbered 1..N instead (display only — df is not
+                  modified). sno=False renders the real index as before.
     """
     total = len(df)
     visible = df if max_rows is None else df.head(max_rows)
+    if sno and "sno" not in visible.columns:
+        visible = visible.copy()
+        visible.insert(0, "sno", range(1, len(visible) + 1))
     caption = (f'<div style="font-weight:600; color:#334155; '
                f'margin-bottom:6px;">{html.escape(str(title))}</div>'
                if title else "")
     note = ("" if len(visible) == total else
             f'<div style="font-size:11px; color:#64748b; margin-top:4px;">'
             f'Showing {len(visible):,} of {total:,} rows</div>')
-    body = (highlight_matches(visible, highlights).to_html()
-            if highlights else visible.to_html())
+    if highlights:
+        styler = highlight_matches(visible, highlights)
+        if sno:
+            try:
+                styler = styler.hide(axis="index")
+            except AttributeError:            # pandas < 1.4
+                styler = styler.hide_index()
+        body = styler.to_html()
+    else:
+        body = visible.to_html(index=not sno)
     display(HTML(
         f'{caption}<div style="max-height:{height}px; overflow:auto; '
         f'display:inline-block;">{body}</div>{note}'
