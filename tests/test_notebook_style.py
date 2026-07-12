@@ -69,7 +69,7 @@ def test_css_defaults():
     # notebook-wide fonts ride JupyterLab's CSS variables
     assert f"--jp-code-font-family: {ns.MONO_FONT}" in fonts
     assert f"--jp-content-font-family: {ns.SANS_FONT}" in fonts
-    assert "@import" in fonts and "Overpass+Mono" in fonts
+    assert "@import" not in fonts               # local fonts only, no fetch
     assert "bar-stripes 0.8s" in progress and 'content: ""' in progress
     assert "prefers-reduced-motion" in progress
 
@@ -119,11 +119,11 @@ def test_setup_passes_progress_args():
 def test_notebook_fonts_options_and_reset():
     CAPTURED.clear()
     ns.notebook_fonts(code_font="Menlo, monospace",
-                      text_font="Arial, sans-serif", web_fonts=False)
+                      text_font="Arial, sans-serif")
     css = last_css()
     assert "--jp-code-font-family: Menlo, monospace" in css
     assert "--jp-content-font-family: Arial, sans-serif" in css
-    assert "@import" not in css                    # web_fonts=False
+    assert "@import" not in css                    # never fetches
 
     CAPTURED.clear()
     ns.setup(fonts=False)                          # explicit reset rule

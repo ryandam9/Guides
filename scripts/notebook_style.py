@@ -145,10 +145,9 @@ DENSITIES = {
     "comfortable": {"font_size": 14, "cell_padding": "9px 14px", "header_padding": "12px 14px"},
 }
 
-#: Font stacks. Overpass Mono is web-loaded from Google Fonts (see
-#: notebook_fonts); Google Sans is proprietary and NOT on the public
-#: Google Fonts CDN — it renders where the machine/browser has it
-#: installed, otherwise the stack falls back to the system sans.
+#: Font stacks, matched entirely against fonts INSTALLED on the machine
+#: running the browser — nothing is ever fetched from the network. Each
+#: stack falls back to a system font when its first choices are absent.
 MONO_FONT = ('"Overpass Mono", ui-monospace, SFMono-Regular, Menlo, '
              'Consolas, monospace')
 SANS_FONT = ('"Google Sans", "Product Sans", system-ui, -apple-system, '
@@ -204,16 +203,13 @@ def _shade(hex_color, weight):
 # rendered markdown without fighting individual selectors.
 _FONTS_TMPL = Template("""\
 <style>
-${web_import}/* --- Notebook fonts (notebook_style) ----------------------------------- */
+/* --- Notebook fonts (notebook_style) ----------------------------------- */
 body {
     --jp-code-font-family: ${code_font};      /* code cells + code output */
     --jp-content-font-family: ${text_font};   /* rendered markdown text */
 }
 </style>
 """)
-
-_OVERPASS_IMPORT = ("@import url('https://fonts.googleapis.com/css2"
-                    "?family=Overpass+Mono:wght@400;600&display=swap');\n")
 
 #: Returns both font variables to the frontend theme's defaults (used by
 #: setup(fonts=False) so styling from an earlier call is removed).
@@ -224,20 +220,18 @@ body { --jp-code-font-family: revert; --jp-content-font-family: revert; }
 """
 
 
-def notebook_fonts(code_font=MONO_FONT, text_font=SANS_FONT, web_fonts=True):
+def notebook_fonts(code_font=MONO_FONT, text_font=SANS_FONT):
     """Apply notebook-wide fonts via JupyterLab's CSS variables.
 
     code_font -- font-family for code cells and code output
                  (default Overpass Mono)
     text_font -- font-family for rendered markdown / notebook text
                  (default Google Sans)
-    web_fonts -- also @import Overpass Mono from Google Fonts, so the
-                 default renders without a local install (the fetch
-                 happens in the BROWSER; offline it fails silently and
-                 the stack's fallbacks apply). Google Sans cannot be
-                 imported — it is proprietary and not on the public
-                 Google Fonts CDN — so it renders only where installed,
-                 falling back to the system sans otherwise.
+
+    Fonts are matched against what is INSTALLED on the machine running
+    the browser — nothing is fetched from the network. A name that isn't
+    installed simply falls through to the next entry in the stack,
+    ending at a system font.
 
     Rerunning with different fonts replaces the earlier choice;
     setup(fonts=False) resets both variables to the theme default.
@@ -245,7 +239,6 @@ def notebook_fonts(code_font=MONO_FONT, text_font=SANS_FONT, web_fonts=True):
     _font_stack(code_font, "code_font")
     _font_stack(text_font, "text_font")
     display(HTML(_FONTS_TMPL.substitute(
-        web_import=_OVERPASS_IMPORT if web_fonts else "",
         code_font=code_font,
         text_font=text_font,
     )))
@@ -483,7 +476,6 @@ def setup(accent="blue", density="normal", font_size=None,
           body_font=MONO_FONT, header_font=SANS_FONT,
           max_rows=100, max_colwidth=80,
           fonts=True, code_font=MONO_FONT, text_font=SANS_FONT,
-          web_fonts=True,
           progress=True, progress_height=14, stripes=True, spinner=True):
     """Apply everything: fonts, pandas options, table theme, progress bars.
 
@@ -491,7 +483,8 @@ def setup(accent="blue", density="normal", font_size=None,
                     sticky_header, max_height, body_font, header_font
                     (see table_style)
     Pandas options: max_rows, max_colwidth (see pandas_options)
-    Notebook fonts: code_font, text_font, web_fonts (see notebook_fonts);
+    Notebook fonts: code_font, text_font (see notebook_fonts — local
+                    fonts only, nothing fetched from the network);
                     fonts=False RESETS code/markdown fonts to the theme
                     default (table fonts are part of the table theme and
                     follow body_font/header_font regardless)
@@ -503,8 +496,7 @@ def setup(accent="blue", density="normal", font_size=None,
     disabling a feature works, not just changing its value.
     """
     if fonts:
-        notebook_fonts(code_font=code_font, text_font=text_font,
-                       web_fonts=web_fonts)
+        notebook_fonts(code_font=code_font, text_font=text_font)
     else:
         display(HTML(FONT_RESET_CSS))
     pandas_options(max_rows=max_rows, max_colwidth=max_colwidth)
