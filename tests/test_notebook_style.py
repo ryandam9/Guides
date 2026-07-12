@@ -66,9 +66,11 @@ def test_css_defaults():
     assert f"font-family: {ns.MONO_FONT}" in table
     assert f"font-family: {ns.SANS_FONT}" in table
     assert table.index("Overpass Mono") < table.index("thead th")
-    # notebook-wide fonts ride JupyterLab's CSS variables
+    # notebook-wide fonts: CSS variables + direct editor/markdown rules
     assert f"--jp-code-font-family: {ns.MONO_FONT}" in fonts
     assert f"--jp-content-font-family: {ns.SANS_FONT}" in fonts
+    assert ".cm-editor" in fonts and ".CodeMirror" in fonts   # CM6 + CM5
+    assert ".jp-RenderedMarkdown" in fonts
     assert "@import" not in fonts               # local fonts only, no fetch
     assert "bar-stripes 0.8s" in progress and 'content: ""' in progress
     assert "prefers-reduced-motion" in progress
