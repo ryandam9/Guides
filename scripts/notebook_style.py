@@ -197,10 +197,13 @@ def _shade(hex_color, weight):
 # Notebook fonts: code cells, code output, and rendered markdown
 # ---------------------------------------------------------------------------
 
-# JupyterLab resolves all code and content typography through two CSS
-# variables; overriding them on <body> beats the theme's :root defaults,
-# so one rule covers code cells (CodeMirror 5 and 6), code output, and
-# rendered markdown without fighting individual selectors.
+# Two mechanisms, because frontends differ in which one they honor:
+# (1) JupyterLab's CSS variables, overridden on <body> to beat the
+#     theme's :root defaults — picked up by components that consume
+#     var(--jp-code-font-family) / var(--jp-content-font-family);
+# (2) direct rules on the editor/markdown DOM — SageMaker Studio has
+#     been seen ignoring the variable route for code cells while a
+#     direct .cm-editor rule works, so both are emitted.
 _FONTS_TMPL = Template("""\
 <style>
 /* --- Notebook fonts (notebook_style) ----------------------------------- */
@@ -208,20 +211,42 @@ body {
     --jp-code-font-family: ${code_font};      /* code cells + code output */
     --jp-content-font-family: ${text_font};   /* rendered markdown text */
 }
+.cm-editor, .cm-editor .cm-scroller,          /* CodeMirror 6 (JupyterLab 4) */
+.CodeMirror, .CodeMirror pre,                 /* CodeMirror 5 (JupyterLab 3) */
+.jp-RenderedHTMLCommon pre,
+.jp-RenderedHTMLCommon code {
+    font-family: ${code_font};
+}
+.jp-RenderedMarkdown {
+    font-family: ${text_font};
+}
 </style>
 """)
 
-#: Returns both font variables to the frontend theme's defaults (used by
-#: setup(fonts=False) so styling from an earlier call is removed).
+#: Returns the font variables AND the direct editor/markdown rules to the
+#: frontend theme's defaults (used by setup(fonts=False) so styling from
+#: an earlier call is removed).
 FONT_RESET_CSS = """\
 <style>
 body { --jp-code-font-family: revert; --jp-content-font-family: revert; }
+.cm-editor, .cm-editor .cm-scroller,
+.CodeMirror, .CodeMirror pre,
+.jp-RenderedHTMLCommon pre,
+.jp-RenderedHTMLCommon code,
+.jp-RenderedMarkdown {
+    font-family: revert;
+}
 </style>
 """
 
 
 def notebook_fonts(code_font=MONO_FONT, text_font=SANS_FONT):
-    """Apply notebook-wide fonts via JupyterLab's CSS variables.
+    """Apply notebook-wide fonts.
+
+    Emits both JupyterLab's CSS variables and direct rules on the
+    editor/markdown DOM (CodeMirror 5 and 6), because some frontends —
+    SageMaker Studio included — apply only the direct rules to code
+    cells.
 
     code_font -- font-family for code cells and code output
                  (default Overpass Mono)
