@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500" viewBox="0 0 1200 1500" role="img" aria-labelledby="title desc">
+<title id="title">Secure File Transfer: System A to System B</title>
+<desc id="desc">A visual guide to OpenPGP GPG encryption and SFTP over SSH, showing one-time setup, file transfer flow, key ownership, security benefits and operational rules.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8fbff"/><stop offset="1" stop-color="#eef4fb"/></linearGradient>
+  <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1f3a"/><stop offset="1" stop-color="#153f70"/></linearGradient>
+  <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0c7a43"/><stop offset="1" stop-color="#26a765"/></linearGradient>
+  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#095daa"/><stop offset="1" stop-color="#2388dc"/></linearGradient>
+  <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d85700"/><stop offset="1" stop-color="#f28a18"/></linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0b1f3a" flood-opacity="0.14"/></filter>
+  <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#146db7"/></marker>
+  <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#159153"/></marker>
+  <symbol id="key" viewBox="0 0 64 64"><circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" stroke-width="7"/><path d="M29 29 L58 58 M45 45 L52 38 M51 51 L58 44" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="lock" viewBox="0 0 64 64"><rect x="10" y="27" width="44" height="31" rx="6" fill="currentColor"/><path d="M20 28 V18 C20 4 44 4 44 18 V28" fill="none" stroke="currentColor" stroke-width="7"/><circle cx="32" cy="42" r="4" fill="#fff"/><path d="M32 45 V51" stroke="#fff" stroke-width="4"/></symbol>
+  <symbol id="file" viewBox="0 0 64 64"><path d="M12 4 H40 L54 18 V60 H12 Z" fill="#fff" stroke="currentColor" stroke-width="4"/><path d="M40 4 V18 H54" fill="none" stroke="currentColor" stroke-width="4"/><path d="M20 30 H46 M20 39 H46 M20 48 H39" stroke="currentColor" stroke-width="3"/></symbol>
+  <symbol id="folder" viewBox="0 0 64 64"><path d="M5 18 H27 L34 25 H59 V55 H5 Z" fill="currentColor" opacity="0.92"/><path d="M5 18 H27 L34 25 H59" fill="none" stroke="#0b1f3a" stroke-width="3"/></symbol>
+  <symbol id="check" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="currentColor"/><path d="M18 32 L28 43 L48 20" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="shield" viewBox="0 0 64 64"><path d="M32 3 L56 12 V30 C56 46 46 56 32 62 C18 56 8 46 8 30 V12 Z" fill="currentColor"/><path d="M20 32 L29 41 L46 23" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/></symbol>
+  <style>
+    .title{font:700 41px Arial,sans-serif;fill:#0b1f3a;letter-spacing:.2px}
+    .subtitle{font:700 25px Arial,sans-serif;fill:#23496e}
+    .section{font:700 22px Arial,sans-serif;fill:#fff;letter-spacing:.5px}
+    .panelTitle{font:700 22px Arial,sans-serif}
+    .stepNo{font:700 18px Arial,sans-serif;fill:#fff;text-anchor:middle;dominant-baseline:middle}
+    .stepTitle{font:700 17px Arial,sans-serif;fill:#102a47}
+    .body{font:400 15px Arial,sans-serif;fill:#263e57}
+    .small{font:400 13px Arial,sans-serif;fill:#38516a}
+    .cardHead{font:700 17px Arial,sans-serif;fill:#fff;text-anchor:middle}
+    .cardTitle{font:700 16px Arial,sans-serif;fill:#102a47}
+    .cardBody{font:400 13.5px Arial,sans-serif;fill:#31485f}
+    .label{font:700 13px Arial,sans-serif;fill:#fff;text-anchor:middle}
+  </style>
+</defs>
+<rect width="1200" height="1500" fill="url(#bg)"/>
+
+<!-- Header -->
+<g transform="translate(36,28)">
+  <use href="#shield" x="0" y="0" width="74" height="74" style="color:#0d568f"/>
+  <text class="title" x="95" y="48">SECURE FILE TRANSFER: SYSTEM A → SYSTEM B</text>
+  <text class="subtitle" x="255" y="92">End-to-End Security using <tspan fill="#159153">OpenPGP (GPG)</tspan> + <tspan fill="#146db7">SFTP (SSH)</tspan></text>
+</g>
+
+<!-- One-time setup banner -->
+<rect x="390" y="132" width="420" height="42" rx="10" fill="url(#navy)"/>
+<text class="section" x="600" y="161" text-anchor="middle">ONE-TIME SETUP — DO THIS ONCE</text>
+
+<!-- Setup panels -->
+<g>
+ <rect x="28" y="194" width="350" height="390" rx="18" fill="#fff" stroke="#81cba7" stroke-width="2"/>
+ <rect x="822" y="194" width="350" height="390" rx="18" fill="#fff" stroke="#79afe0" stroke-width="2"/>
+ <rect x="410" y="194" width="380" height="390" rx="18" fill="#fff" stroke="#b8c8d8" stroke-width="2"/>
+</g>
+<rect x="125" y="210" width="156" height="38" rx="9" fill="url(#green)"/><text class="section" x="203" y="237" text-anchor="middle">SYSTEM A</text>
+<rect x="919" y="210" width="156" height="38" rx="9" fill="url(#blue)"/><text class="section" x="997" y="237" text-anchor="middle">SYSTEM B</text>
+
+<!-- System A setup -->
+<circle cx="60" cy="286" r="18" fill="#159153"/><text class="stepNo" x="60" y="286">3</text>
+<text class="stepTitle" x="90" y="281">Import B's GPG public key</text>
+<text class="body" x="90" y="305">Verify B's identity before encrypting.</text>
+<use href="#key" x="250" y="318" width="62" height="62" style="color:#159153"/>
+<text class="small" x="281" y="397" text-anchor="middle">B public key (.asc)</text>
+<line x1="48" y1="420" x2="355" y2="420" stroke="#d9e5df"/>
+<circle cx="60" cy="458" r="18" fill="#159153"/><text class="stepNo" x="60" y="458">5</text>
+<text class="stepTitle" x="90" y="453">Create A's SSH key pair</text>
+<text class="body" x="90" y="477">Private key stays on A.</text>
+<use href="#key" x="250" y="485" width="52" height="52" style="color:#e46c00"/>
+<use href="#key" x="292" y="490" width="48" height="48" style="color:#146db7"/>
+<text class="small" x="295" y="554" text-anchor="middle">private + public</text>
+
+<!-- System B setup -->
+<circle cx="854" cy="286" r="18" fill="#146db7"/><text class="stepNo" x="854" y="286">1</text>
+<text class="stepTitle" x="884" y="281">Create B's GPG key pair</text>
+<text class="body" x="884" y="305">Keep private key; share public key.</text>
+<use href="#key" x="1010" y="330" width="64" height="64" style="color:#146db7"/>
+<line x1="845" y1="420" x2="1150" y2="420" stroke="#d8e3ef"/>
+<circle cx="854" cy="458" r="18" fill="#146db7"/><text class="stepNo" x="854" y="458">4</text>
+<text class="stepTitle" x="884" y="453">Install A's SSH public key</text>
+<text class="body" x="884" y="477">Allows A to authenticate via SFTP.</text>
+<rect x="1018" y="496" width="68" height="54" rx="8" fill="#102a47"/><text x="1052" y="531" font-family="monospace" font-size="25" fill="#fff" text-anchor="middle">&gt;_</text>
+
+<!-- Center setup exchange -->
+<circle cx="445" cy="244" r="18" fill="#146db7"/><text class="stepNo" x="445" y="244">1</text>
+<text class="stepTitle" x="475" y="240">B shares public encryption key</text>
+<use href="#file" x="442" y="275" width="70" height="70" style="color:#159153"/>
+<use href="#key" x="683" y="277" width="64" height="64" style="color:#159153"/>
+<line x1="525" y1="310" x2="666" y2="310" stroke="#159153" stroke-width="4" marker-end="url(#arrowGreen)"/>
+<text class="small" x="596" y="335" text-anchor="middle">B public key (.asc)</text>
+<circle cx="445" cy="388" r="18" fill="#146db7"/><text class="stepNo" x="445" y="388">2</text>
+<text class="stepTitle" x="475" y="384">A sends SSH public key to B</text>
+<use href="#key" x="455" y="420" width="58" height="58" style="color:#102a47"/>
+<line x1="525" y1="448" x2="680" y2="448" stroke="#146db7" stroke-width="4" marker-end="url(#arrowBlue)"/>
+<rect x="538" y="492" width="126" height="58" rx="12" fill="url(#blue)"/>
+<text class="label" x="601" y="515">SFTP over SSH</text><text class="label" x="601" y="535">TCP port 22</text>
+<path d="M370 520 C430 520 470 520 530 520" fill="none" stroke="#146db7" stroke-width="3" stroke-dasharray="7 7"/>
+<path d="M670 520 C730 520 770 520 830 520" fill="none" stroke="#146db7" stroke-width="3" stroke-dasharray="7 7"/>
+
+<!-- Transfer flow -->
+<rect x="360" y="620" width="480" height="42" rx="10" fill="url(#navy)"/>
+<text class="section" x="600" y="649" text-anchor="middle">EVERY FILE TRANSFER — A → B</text>
+<rect x="28" y="684" width="1144" height="350" rx="18" fill="#fff" stroke="#cad8e5" stroke-width="2"/>
+
+<!-- six flow steps -->
+<g>
+ <circle cx="60" cy="725" r="17" fill="#159153"/><text class="stepNo" x="60" y="725">1</text>
+ <text class="stepTitle" x="86" y="720">Create file on A</text>
+ <use href="#file" x="85" y="760" width="76" height="76" style="color:#5f7890"/>
+ <text class="small" x="123" y="862" text-anchor="middle">orders_20260715.csv</text>
+ <text class="small" x="123" y="887" text-anchor="middle">Validate before sending</text>
+</g>
+<line x1="172" y1="800" x2="203" y2="800" stroke="#159153" stroke-width="5" marker-end="url(#arrowGreen)"/>
+<g>
+ <circle cx="232" cy="725" r="17" fill="#159153"/><text class="stepNo" x="232" y="725">2</text>
+ <text class="stepTitle" x="258" y="720">Encrypt with B's key</text>
+ <use href="#lock" x="275" y="760" width="76" height="76" style="color:#159153"/>
+ <text class="small" x="313" y="862" text-anchor="middle">orders.csv.gpg</text>
+ <text class="small" x="313" y="887" text-anchor="middle">Only B can decrypt</text>
+</g>
+<line x1="365" y1="800" x2="398" y2="800" stroke="#159153" stroke-width="5" marker-end="url(#arrowGreen)"/>
+<g>
+ <circle cx="427" cy="725" r="17" fill="#146db7"/><text class="stepNo" x="427" y="725">3</text>
+ <text class="stepTitle" x="453" y="720">Upload via SFTP</text>
+ <use href="#folder" x="474" y="765" width="80" height="80" style="color:#4e9fe2"/>
+ <text class="small" x="514" y="862" text-anchor="middle">orders.csv.gpg.part</text>
+ <text class="small" x="514" y="887" text-anchor="middle">Upload in progress</text>
+</g>
+<line x1="565" y1="800" x2="598" y2="800" stroke="#146db7" stroke-width="5" marker-end="url(#arrowBlue)"/>
+<g>
+ <circle cx="627" cy="725" r="17" fill="#146db7"/><text class="stepNo" x="627" y="725">4</text>
+ <text class="stepTitle" x="653" y="720">Rename when complete</text>
+ <use href="#folder" x="677" y="765" width="80" height="80" style="color:#4e9fe2"/>
+ <use href="#check" x="735" y="812" width="34" height="34" style="color:#159153"/>
+ <text class="small" x="717" y="862" text-anchor="middle">orders.csv.gpg</text>
+ <text class="small" x="717" y="887" text-anchor="middle">Ready for B</text>
+</g>
+<line x1="771" y1="800" x2="805" y2="800" stroke="#146db7" stroke-width="4" stroke-dasharray="6 6" marker-end="url(#arrowBlue)"/>
+<g>
+ <circle cx="834" cy="725" r="17" fill="#146db7"/><text class="stepNo" x="834" y="725">5</text>
+ <text class="stepTitle" x="860" y="720">B decrypts file</text>
+ <use href="#lock" x="865" y="760" width="76" height="76" style="color:#146db7"/>
+ <text class="small" x="903" y="862" text-anchor="middle">orders.csv restored</text>
+ <text class="small" x="903" y="887" text-anchor="middle">Uses B private key</text>
+</g>
+<line x1="950" y1="800" x2="982" y2="800" stroke="#146db7" stroke-width="5" marker-end="url(#arrowBlue)"/>
+<g>
+ <circle cx="1011" cy="725" r="17" fill="#146db7"/><text class="stepNo" x="1011" y="725">6</text>
+ <text class="stepTitle" x="1037" y="720">Validate &amp; process</text>
+ <use href="#file" x="1040" y="760" width="76" height="76" style="color:#5f7890"/>
+ <use href="#check" x="1100" y="817" width="34" height="34" style="color:#146db7"/>
+ <text class="small" x="1078" y="862" text-anchor="middle">Process or archive</text>
+ <text class="small" x="1078" y="887" text-anchor="middle">Reject invalid files</text>
+</g>
+<rect x="55" y="930" width="1090" height="70" rx="12" fill="#edf5fb"/>
+<text class="body" x="80" y="958"><tspan font-weight="700">Completion rule:</tspan> B ignores every <tspan font-weight="700">.part</tspan> file. The final rename to <tspan font-weight="700">.gpg</tspan> is the ready signal.</text>
+<text class="body" x="80" y="983"><tspan font-weight="700">Reverse direction:</tspan> B → A follows the same process using A's GPG public key and B's SSH identity.</text>
+
+<!-- Bottom cards -->
+<g>
+ <rect x="28" y="1070" width="270" height="350" rx="16" fill="#fff" stroke="#c9d7e4"/>
+ <rect x="318" y="1070" width="270" height="350" rx="16" fill="#fff" stroke="#c9d7e4"/>
+ <rect x="608" y="1070" width="270" height="350" rx="16" fill="#fff" stroke="#c9d7e4"/>
+ <rect x="898" y="1070" width="274" height="350" rx="16" fill="#fff" stroke="#f0b47a"/>
+</g>
+<rect x="28" y="1070" width="270" height="48" rx="16" fill="url(#navy)"/><text class="cardHead" x="163" y="1101">KEYS &amp; PURPOSE</text>
+<rect x="318" y="1070" width="270" height="48" rx="16" fill="url(#navy)"/><text class="cardHead" x="453" y="1101">WHAT EACH SIDE KEEPS</text>
+<rect x="608" y="1070" width="270" height="48" rx="16" fill="url(#navy)"/><text class="cardHead" x="743" y="1101">SECURITY BENEFITS</text>
+<rect x="898" y="1070" width="274" height="48" rx="16" fill="url(#orange)"/><text class="cardHead" x="1035" y="1101">IMPORTANT RULES</text>
+
+<!-- card 1 -->
+<use href="#key" x="48" y="1145" width="50" height="50" style="color:#159153"/><text class="cardTitle" x="110" y="1158">GPG / OpenPGP keys</text><text class="cardBody" x="110" y="1181">Encrypt the file itself.</text><text class="cardBody" x="110" y="1202">Recipient private key decrypts.</text>
+<use href="#key" x="48" y="1233" width="50" height="50" style="color:#146db7"/><text class="cardTitle" x="110" y="1246">SSH keys</text><text class="cardBody" x="110" y="1269">Authenticate the SFTP client.</text><text class="cardBody" x="110" y="1290">Not used for GPG encryption.</text>
+<use href="#shield" x="49" y="1320" width="48" height="48" style="color:#159153"/><text class="cardTitle" x="110" y="1335">Separate key pairs</text><text class="cardBody" x="110" y="1358">Never reuse SSH keys as</text><text class="cardBody" x="110" y="1379">OpenPGP keys.</text>
+
+<!-- card 2 -->
+<text class="cardTitle" x="340" y="1155" fill="#159153">SYSTEM A</text>
+<text class="cardBody" x="340" y="1183">✓ B's GPG public key</text><text class="cardBody" x="340" y="1210">✓ A's SSH private key</text><text class="cardBody" x="340" y="1237">✓ B's SSH host fingerprint</text><text class="cardBody" x="340" y="1264">✓ Source file &amp; logs</text>
+<line x1="340" y1="1286" x2="566" y2="1286" stroke="#d9e4ee"/>
+<text class="cardTitle" x="340" y="1315" fill="#146db7">SYSTEM B</text>
+<text class="cardBody" x="340" y="1343">✓ B's GPG private key</text><text class="cardBody" x="340" y="1370">✓ A's SSH public key</text><text class="cardBody" x="340" y="1397">✓ Inbound and archive files</text>
+
+<!-- card 3 -->
+<use href="#lock" x="628" y="1140" width="46" height="46" style="color:#159153"/><text class="cardTitle" x="688" y="1155">Confidentiality</text><text class="cardBody" x="688" y="1178">Only B can decrypt</text><text class="cardBody" x="688" y="1198">a file encrypted for B.</text>
+<use href="#shield" x="628" y="1230" width="46" height="46" style="color:#146db7"/><text class="cardTitle" x="688" y="1245">Authentication</text><text class="cardBody" x="688" y="1268">SSH proves the client</text><text class="cardBody" x="688" y="1288">holds the private key.</text>
+<circle cx="651" cy="1340" r="21" fill="#146db7"/><path d="M640 1340 H662 M651 1329 V1351" stroke="#fff" stroke-width="4"/><text class="cardTitle" x="688" y="1335">Server identity</text><text class="cardBody" x="688" y="1358">Host-key verification blocks</text><text class="cardBody" x="688" y="1378">server impersonation.</text>
+
+<!-- card 4 -->
+<use href="#lock" x="918" y="1140" width="43" height="43" style="color:#e46c00"/><text class="cardTitle" x="974" y="1155">Never share private keys.</text>
+<path d="M940 1220 L958 1252 H922 Z" fill="#f28a18"/><text x="940" y="1245" font="700 18px Arial" fill="#fff" text-anchor="middle">!</text><text class="cardTitle" x="974" y="1232">Verify fingerprints</text><text class="cardBody" x="974" y="1254">through a separate channel.</text>
+<rect x="920" y="1290" width="42" height="34" rx="5" fill="#f28a18"/><text class="label" x="941" y="1312">.part</text><text class="cardTitle" x="974" y="1302">Do not process .part</text><text class="cardBody" x="974" y="1324">files before final rename.</text>
+<use href="#check" x="919" y="1352" width="43" height="43" style="color:#e46c00"/><text class="cardTitle" x="974" y="1367">Validate after decryption</text><text class="cardBody" x="974" y="1389">then process and archive.</text>
+
+<!-- Legend -->
+<rect x="28" y="1445" width="1144" height="35" rx="10" fill="#e5edf5"/>
+<line x1="185" y1="1462" x2="235" y2="1462" stroke="#159153" stroke-width="5"/><text class="small" x="245" y="1467">GPG / OpenPGP encryption</text>
+<line x1="495" y1="1462" x2="545" y2="1462" stroke="#146db7" stroke-width="5"/><text class="small" x="555" y="1467">SSH / SFTP transport</text>
+<line x1="785" y1="1462" x2="835" y2="1462" stroke="#146db7" stroke-width="4" stroke-dasharray="7 6"/><text class="small" x="845" y="1467">Secure connection / trust check</text>
+</svg>

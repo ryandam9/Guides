@@ -4,6 +4,14 @@
 >
 > **Version snapshot:** 15 July 2026. Product versions change; use a currently supported vendor build and confirm interoperability between both parties.
 
+## Infographic
+
+[![Secure file transfer from System A to System B using OpenPGP/GPG and SFTP over SSH](assets/secure-file-transfer-infographic.svg)](assets/secure-file-transfer-infographic.svg)
+
+> Click the infographic to view it at full size.
+
+---
+
 ## 1. The setup in one picture
 
 ```mermaid
