@@ -29,11 +29,11 @@ jobs:
         run: |
           count=$(find .github/image-payload -maxdepth 1 -name 'chunk-*.txt' -type f 2>/dev/null | wc -l | tr -d ' ')
           echo "count=$count" >> "$GITHUB_OUTPUT"
-          if [ "$count" -eq 11 ]; then
+          if [ "$count" -eq 6 ]; then
             echo "complete=true" >> "$GITHUB_OUTPUT"
           else
             echo "complete=false" >> "$GITHUB_OUTPUT"
-            echo "Payload incomplete: found $count of 11 chunks."
+            echo "Payload incomplete: found $count of 6 chunks."
           fi
 
       - name: Reconstruct image and update guide
@@ -41,16 +41,16 @@ jobs:
         shell: bash
         run: |
           mkdir -p docs/assets
-          cat .github/image-payload/chunk-*.txt | base64 --decode > docs/assets/secure-file-transfer-infographic.jpg
+          cat .github/image-payload/chunk-*.txt | base64 --decode > docs/assets/secure-file-transfer-infographic.webp
 
           python3 - <<'PY'
           from pathlib import Path
 
           guide = Path('docs/secure-file-transfer-sftp-openpgp.md')
           text = guide.read_text(encoding='utf-8')
-          image_block = '''## Infographic\n\n[![Secure file transfer from System A to System B using OpenPGP/GPG and SFTP over SSH](assets/secure-file-transfer-infographic.jpg)](assets/secure-file-transfer-infographic.jpg)\n\n> Click the infographic to view it at full size.\n\n---\n\n'''
+          image_block = '''## Infographic\n\n[![Secure file transfer from System A to System B using OpenPGP/GPG and SFTP over SSH](assets/secure-file-transfer-infographic.webp)](assets/secure-file-transfer-infographic.webp)\n\n> Click the infographic to view it at full size.\n\n---\n\n'''
 
-          if 'assets/secure-file-transfer-infographic.jpg' not in text:
+          if 'assets/secure-file-transfer-infographic.webp' not in text:
               marker = '## 1. The setup in one picture\n'
               if marker not in text:
                   raise SystemExit(f'Insertion marker not found in {guide}')
@@ -58,8 +58,8 @@ jobs:
               guide.write_text(text, encoding='utf-8')
           PY
 
-          test -s docs/assets/secure-file-transfer-infographic.jpg
-          file docs/assets/secure-file-transfer-infographic.jpg
+          test -s docs/assets/secure-file-transfer-infographic.webp
+          file docs/assets/secure-file-transfer-infographic.webp
           rm -rf .github/image-payload
           rm -f .github/workflows/build-secure-transfer-infographic.yml
 
@@ -69,6 +69,6 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/secure-file-transfer-sftp-openpgp.md docs/assets/secure-file-transfer-infographic.jpg .github
+          git add docs/secure-file-transfer-sftp-openpgp.md docs/assets/secure-file-transfer-infographic.webp .github
           git commit -m 'Add secure file transfer infographic'
           git push origin HEAD:${GITHUB_REF_NAME}
