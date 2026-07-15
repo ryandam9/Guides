@@ -1,21 +1,21 @@
-name: Build secure transfer infographic asset
+name: Link secure transfer infographic
 
 on:
   push:
     branches:
       - agent/add-secure-file-transfer-infographic
     paths:
-      - '.github/image-payload/**'
+      - 'docs/assets/secure-file-transfer-infographic.svg'
 
 permissions:
   contents: write
 
 concurrency:
-  group: build-secure-transfer-infographic
+  group: link-secure-transfer-infographic
   cancel-in-progress: true
 
 jobs:
-  build-image:
+  update-guide:
     runs-on: ubuntu-latest
     steps:
       - name: Check out branch
@@ -23,34 +23,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check payload completeness
-        id: payload
+      - name: Add infographic to guide
         shell: bash
         run: |
-          count=$(find .github/image-payload -maxdepth 1 -name 'chunk-*.txt' -type f 2>/dev/null | wc -l | tr -d ' ')
-          echo "count=$count" >> "$GITHUB_OUTPUT"
-          if [ "$count" -eq 6 ]; then
-            echo "complete=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "complete=false" >> "$GITHUB_OUTPUT"
-            echo "Payload incomplete: found $count of 6 chunks."
-          fi
-
-      - name: Reconstruct image and update guide
-        if: steps.payload.outputs.complete == 'true'
-        shell: bash
-        run: |
-          mkdir -p docs/assets
-          cat .github/image-payload/chunk-*.txt | base64 --decode > docs/assets/secure-file-transfer-infographic.webp
-
           python3 - <<'PY'
           from pathlib import Path
 
           guide = Path('docs/secure-file-transfer-sftp-openpgp.md')
           text = guide.read_text(encoding='utf-8')
-          image_block = '''## Infographic\n\n[![Secure file transfer from System A to System B using OpenPGP/GPG and SFTP over SSH](assets/secure-file-transfer-infographic.webp)](assets/secure-file-transfer-infographic.webp)\n\n> Click the infographic to view it at full size.\n\n---\n\n'''
+          image_block = '''## Infographic\n\n[![Secure file transfer from System A to System B using OpenPGP/GPG and SFTP over SSH](assets/secure-file-transfer-infographic.svg)](assets/secure-file-transfer-infographic.svg)\n\n> Click the infographic to view it at full size.\n\n---\n\n'''
 
-          if 'assets/secure-file-transfer-infographic.webp' not in text:
+          if 'assets/secure-file-transfer-infographic.svg' not in text:
               marker = '## 1. The setup in one picture\n'
               if marker not in text:
                   raise SystemExit(f'Insertion marker not found in {guide}')
@@ -58,17 +41,14 @@ jobs:
               guide.write_text(text, encoding='utf-8')
           PY
 
-          test -s docs/assets/secure-file-transfer-infographic.webp
-          file docs/assets/secure-file-transfer-infographic.webp
-          rm -rf .github/image-payload
+          test -s docs/assets/secure-file-transfer-infographic.svg
           rm -f .github/workflows/build-secure-transfer-infographic.yml
 
-      - name: Commit generated asset
-        if: steps.payload.outputs.complete == 'true'
+      - name: Commit guide update
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/secure-file-transfer-sftp-openpgp.md docs/assets/secure-file-transfer-infographic.webp .github
-          git commit -m 'Add secure file transfer infographic'
+          git add docs/secure-file-transfer-sftp-openpgp.md docs/assets/secure-file-transfer-infographic.svg .github/workflows/build-secure-transfer-infographic.yml
+          git commit -m 'Link secure file transfer infographic'
           git push origin HEAD:${GITHUB_REF_NAME}
