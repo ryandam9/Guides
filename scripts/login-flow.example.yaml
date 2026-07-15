@@ -1,0 +1,73 @@
+# ── Ad-hoc multi-step login flow (throwaway; NOT the repo's config) ──────────
+# A SEQUENCE of steps. Each step locates ONE control, optionally types a value,
+# then acts (enter | click | none). Steps run in order; the runner WAITS for each
+# step's control to appear across ALL frames (handles iframes + dynamically
+# generated forms), so page-to-page transitions happen automatically.
+#
+# selector forms — use an id when one exists, else tag+type (your case):
+#   id:usernameBox        →  [id="usernameBox"]        (preferred when present)
+#   type:email            →  input[type="email"]       (tag+type: the common one)
+#   name:email            →  [name="email"]
+#   testid:accSubmit      →  [data-testid="accSubmit"]
+#   text:Log in           →  a control whose visible text is "Log in"
+#   css:div.title         →  a raw CSS selector, used as-is (any tag+type combo)
+#
+# value: put the literal value right here in the file (username, password,
+# email, …). Add `secret: true` so it is never echoed in the run log.
+#   ⚠ This file now holds plaintext passwords — keep it private: chmod 600 <file>.
+#      The runner warns at startup if it is readable by group/others.
+#
+# MFA / OTP — you type the code in the BROWSER yourself; the runner just WAITS:
+#     - name: mfa-wait
+#       waitFor: "text:Accounts"     # something on the page that appears AFTER OTP
+#       timeoutMs: 180000            # plenty of time to fetch + type the code
+#   No terminal input at all: do the OTP in the browser, and the moment the next
+#   page's selector/text is visible the runner continues. (waitFor accepts the
+#   same selector forms: id:/type:/name:/testid:/text:/css:.)
+
+startUrl: "https://YOUR-ENV-HOST/JaffaVault/v10/logon/…"
+
+# Success = a page whose BODY TEXT contains this phrase (case-insensitive).
+successText: "accounts view"
+
+stepTimeoutMs: 20000        # how long to wait for each step's control to appear
+
+steps:
+  # ── Page 1: username + password + "Log in" ───────────────────────────────
+  - name: username
+    selector: "id:username"            # ← real id if present, else e.g. type:text
+    value: "your.username"
+
+  - name: password
+    selector: "type:password"
+    value: "your-password"
+    secret: true
+
+  - name: log-in
+    selector: "css:div.title"          # the "Log in" element from the sketch
+    action: click
+
+  # ── Page 2: email → Enter ────────────────────────────────────────────────
+  - name: email
+    selector: "type:email"
+    value: "you@example.com"
+    action: enter
+
+  # ── Page 3: password (SAME password) → Enter ─────────────────────────────
+  - name: password-2
+    selector: "type:password"
+    value: "your-password"             # same password as page 1
+    secret: true
+    action: enter
+
+  # ── (optional) MFA / OTP — you type the code in the BROWSER; runner waits ─
+  # Enable this if an OTP page appears here. No terminal input: enter the code
+  # in the browser, and the runner continues when the next page shows up.
+  # - name: mfa-wait
+  #   waitFor: "type:submit"     # a control on the page that follows the OTP
+  #   timeoutMs: 180000
+
+  # ── Page 4: Submit, then wait for the Account view ───────────────────────
+  - name: submit
+    selector: "type:submit"
+    action: click
