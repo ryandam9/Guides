@@ -63,10 +63,10 @@ stepTimeoutMs: 20000             # how long to wait for each step's control
 steps:
   - name: username
     selector: "id:username"      # selector forms below
-    value: "your.username"       # literal value, right here in the file
+    value: "keychain:jaffa-username"  # literal, or keychain:/env:/prompt: (see Values)
   - name: password
     selector: "type:password"
-    value: "your-password"
+    value: "keychain:jaffa-pwd"  # read from the macOS Keychain at runtime
     secret: true                 # never echoed in the run log
     keys: ["Tab", "Enter"]       # submit by keyboard — see "Submitting" below
 ```
@@ -145,11 +145,34 @@ tabbing. If the cursor doesn't land where you expect, adjust the `preKeys` count
 
 ### Values
 
-Put the literal value in the file (`value: "your.username"`). Add
-`secret: true` so passwords aren't echoed in the run log.
+A `value:` is either a literal in the file or one of three runtime sources, so a
+secret never has to sit in the config:
 
-> **The config holds plaintext passwords — keep it private:** `chmod 600
-> login-flow.yaml`. The script warns at startup if the file is readable by
+| `value:` | Reads from | Use for |
+| --- | --- | --- |
+| `"your.username"` | the literal text | non-secret fields |
+| `"keychain:jaffa-pwd"` | the **macOS Keychain** (via `security`) | secrets on your Mac |
+| `"env:PORTAL_PWD"` | an environment variable | secrets from your shell / CI |
+| `"prompt:One-time code"` | a terminal prompt when the step runs | OTP / MFA codes |
+
+Add `secret: true` so the value is never echoed in the run log.
+
+**macOS Keychain** — add each item once (the value goes in the item's password
+field, which `security … -w` reads back):
+
+```bash
+security add-generic-password -a "$USER" -s jaffa-username -w   # then type the value
+security add-generic-password -a "$USER" -s jaffa-pwd      -w
+security add-generic-password -a "$USER" -s jaffa-email    -w
+```
+
+Then reference them as `value: "keychain:jaffa-username"`, `"keychain:jaffa-pwd"`,
+`"keychain:jaffa-email"`. The item is matched by service name (`-s`), falling
+back to account (`-a`) then label (`-l`). Keychain values require macOS; on other
+platforms use `env:` or `prompt:`.
+
+> **Any literal passwords make the config sensitive — keep it private:** `chmod
+> 600 login-flow.yaml`. The script warns at startup if the file is readable by
 > group/others.
 
 ## 4. MFA / OTP
