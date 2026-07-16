@@ -99,7 +99,23 @@ presses these key lists via the keyboard.
 | `preKeys: ["Tab"]` | keys pressed **before** typing — e.g. Tab off the URL bar onto the text box |
 | `value: "…"` | typed into the **currently focused** element (not a located one) |
 | `keys: ["Tab","Tab","Enter"]` | keys pressed **after** typing — Tab to the submit, then Enter |
-| `waitBeforeMs` / `waitMs` | fixed pauses before / after the step (let the page load / settle) |
+
+#### Timing knobs
+
+Every step (keyboard-only *or* selector) runs in this order, and each pause is
+an optional millisecond value you can set independently — so you can wait both
+**before and after entering the details**:
+
+```
+waitBeforeMs → [preKeys] → waitBeforeTypeMs → TYPE value → waitAfterTypeMs → [keys/action] → waitMs
+```
+
+| Field | Pause |
+| --- | --- |
+| `waitBeforeMs` | before the step does anything (e.g. let a new page load) |
+| `waitBeforeTypeMs` | right **before** typing the value |
+| `waitAfterTypeMs` | right **after** typing the value, before the keys/submit |
+| `waitMs` | after the whole step (default `800`; set `0` to skip) |
 
 ```yaml
 # Page 2: Tab into the box, type email, Tab twice, Enter, wait 5s — no selector.

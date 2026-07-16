@@ -250,9 +250,15 @@ async function waitForSuccess(page, phrase, timeout = 30000) {
       }
     };
 
-    // waitBeforeMs: a fixed pause BEFORE acting — lets a freshly-loaded page
-    // settle before a keyboard-only (no-selector) step starts tabbing.
-    if (step.waitBeforeMs) { console.log(`   ⏱ waiting ${step.waitBeforeMs}ms before acting…`); await page.waitForTimeout(step.waitBeforeMs); }
+    // A named fixed pause (logged so the run shows where time went).
+    const pause = async (ms, label) => { if (ms) { console.log(`   ⏱ ${label} ${ms}ms…`); await page.waitForTimeout(ms); } };
+
+    // Per-step timing knobs (all optional, milliseconds):
+    //   waitBeforeMs      — before the step does anything
+    //   waitBeforeTypeMs  — after preKeys, right BEFORE typing the value
+    //   waitAfterTypeMs   — right AFTER typing the value, before keys/submit
+    //   waitMs            — after the whole step (default 800)
+    await pause(step.waitBeforeMs, 'before step');
 
     const value = await resolveValue(step);
 
@@ -269,8 +275,10 @@ async function waitForSuccess(page, phrase, timeout = 30000) {
       }
       if (step.preKeys != null) { await el.focus().catch(() => {}); await pressKeys(step.preKeys); }
       if (value != null) {
+        await pause(step.waitBeforeTypeMs, 'before typing');
         await el.fill(value, { timeout: 5000 }).catch(async () => { await el.click().catch(() => {}); await el.type(value); });
         console.log(`   ✓ filled ${step.secret ? '(secret hidden)' : JSON.stringify(value)}`);
+        await pause(step.waitAfterTypeMs, 'after typing');
       }
       // keys: a key sequence from the just-filled field (e.g. [Tab, Enter]) to
       // reach + activate the submit control WITHOUT naming it. `keys` replaces
@@ -289,13 +297,15 @@ async function waitForSuccess(page, phrase, timeout = 30000) {
       // value into whatever is focused, then keys [Tab, Tab, Enter] to submit.
       if (step.preKeys != null) await pressKeys(step.preKeys);
       if (value != null) {
+        await pause(step.waitBeforeTypeMs, 'before typing');
         await page.keyboard.type(value, { delay: step.typeDelayMs || 30 });
         console.log(`   ⌨ typed ${step.secret ? '(secret hidden)' : JSON.stringify(value)}`);
+        await pause(step.waitAfterTypeMs, 'after typing');
       }
       if (step.keys != null) await pressKeys(step.keys);
       else if (step.action === 'enter') { await page.keyboard.press('Enter'); console.log('   ↵ pressed Enter'); }
     }
-    await page.waitForTimeout(step.waitMs || 800);
+    await pause(step.waitMs != null ? step.waitMs : 800, 'after step');
   }
 
   if (ok) {
