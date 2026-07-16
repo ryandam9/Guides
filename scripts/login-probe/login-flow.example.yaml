@@ -114,9 +114,16 @@ adhoc:
   formProbe: 'input[formcontrolname="inpAddress" i], [formcontrolname="ddlPolicy" i]'
   formWait:  'input[formcontrolname="inpAddress" i]'
 
-  # The form fields, in order. kind: input | dropdown.
+  # probeForm: true (default) prints EVERY control on the form when it opens,
+  # each with a ready-to-paste config line — so an extra field you don't yet
+  # know about is easy to spot and add below. Set false once your config is done.
+  probeForm: true
+
+  # The form fields, filled IN ORDER. kind: input | dropdown.
   #   input    → selector + value (fill)
-  #   dropdown → fc (Angular formcontrolname) + value (pick the option)
+  #   dropdown → fc (Angular formcontrolname) OR selector, + value (pick option)
+  # To add the extra field: run once, read its line from the "form controls"
+  # dump, and paste it here (place it AFTER any field that makes it appear).
   fields:
     - { kind: dropdown, label: Platform, fc: ddlPolicy,               value: "PSM-SecureConnect" }
     - { kind: dropdown, label: Client,   fc: ddlConnectionComponents, value: "SSH" }
@@ -126,6 +133,10 @@ adhoc:
     - { kind: input, label: Password, selector: 'input[formcontrolname="inpPassword" i]', value: "your-target-password", optional: true, secret: true }
     # Reason only filled when a value is set.
     - { kind: input, label: Reason,   selector: 'input[formcontrolname="inpReason" i]',   value: "", optional: true, skipIfEmpty: true }
+    # ── The extra field goes here once you know it. Examples: ────────────────
+    # - { kind: dropdown, label: Realm, fc: ddlRealm, value: "PROD" }        # by formcontrolname
+    # - { kind: dropdown, label: Realm, selector: '#realmDropdown', value: "PROD" }  # by selector (no fc)
+    # - { kind: input,    label: Port,  selector: '#port', value: "22" }
 
   # The dialog's Connect button (waited on until enabled, then clicked).
   connect:

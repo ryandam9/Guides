@@ -244,19 +244,27 @@ async function fillField(scope, labelText, value, { optional = false, timeout, s
 }
 
 // setDropdown — native <select>, PrimeNG <p-dropdown> overlay, or a label-based
-// combobox, matched by formcontrolname. (sendcmd automate.js:1822)
+// combobox. Matched by formcontrolname `fc`, OR by a raw `selector` (for an
+// extra field that has no formcontrolname). (ported from sendcmd automate.js:1822)
 async function setDropdown(scope, page, field, value, { timeout = 15000 } = {}) {
-  const { fc, label } = field;
+  const { fc, label, selector } = field;
   const wanted = new RegExp(escapeRegex(value), 'i');
   const wantedExact = new RegExp(`^\\s*${escapeRegex(value)}\\s*$`, 'i');
 
-  const nativeSel = scope.locator(`select[formcontrolname="${fc}" i]`).first();
+  // Native <select>: a `selector` may itself point at one; otherwise build from fc.
+  const nativeSel = (selector ? scope.locator(selector) : scope.locator(`select[formcontrolname="${fc}" i]`)).first();
   if (await nativeSel.count().catch(() => 0)) {
-    try { await nativeSel.selectOption({ label: value }); return true; } catch { /* fall through */ }
+    try { await nativeSel.selectOption({ label: value }); return true; } catch { /* not a native select / fall through */ }
   }
 
-  const prime = scope.locator(`p-dropdown[formcontrolname="${fc}" i]`).first();
-  const trigger = (await prime.count().catch(() => 0)) ? prime : scope.locator(`[formcontrolname="${fc}" i]`).first();
+  // Custom dropdown trigger: the given selector, else the fc-based p-dropdown.
+  let trigger;
+  if (selector) {
+    trigger = scope.locator(selector).first();
+  } else {
+    const prime = scope.locator(`p-dropdown[formcontrolname="${fc}" i]`).first();
+    trigger = (await prime.count().catch(() => 0)) ? prime : scope.locator(`[formcontrolname="${fc}" i]`).first();
+  }
   if (await trigger.count().catch(() => 0)) {
     const shown = (await trigger.innerText().catch(() => '')) || '';
     if (wantedExact.test(shown)) { console.log(`      ${label} already set to "${value}".`); return true; }
@@ -291,6 +299,41 @@ async function setDropdown(scope, page, field, value, { timeout = 15000 } = {}) 
   return false;
 }
 
+// List every input + dropdown on the opened form, with a ready-to-paste config
+// line for each — so an extra field you didn't know about is easy to add to
+// `adhoc.fields`. Prints to the console and saves a JSON dump.
+async function dumpFormControls(formFrame, tag) {
+  const collect = () => {
+    const vis = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+    const at = (el, n) => el.getAttribute(n) || '';
+    const labelOf = (el) => {
+      if (el.id) { const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`); if (l && l.textContent.trim()) return l.textContent.trim(); }
+      const w = el.closest('label'); if (w && w.textContent.trim()) return w.textContent.trim();
+      return at(el, 'aria-label') || at(el, 'placeholder') || '';
+    };
+    const inputs = [...document.querySelectorAll('input, textarea')].filter((e) => e.type !== 'hidden' && vis(e))
+      .map((e) => ({ control: 'input', type: e.type || 'text', fc: at(e, 'formcontrolname'), id: at(e, 'id'), name: at(e, 'name'), label: labelOf(e) }));
+    const dds = [...document.querySelectorAll('select, p-dropdown, mat-select, [role="combobox"], .ui-dropdown, .p-dropdown')].filter(vis)
+      .map((e) => ({ control: 'dropdown', tag: e.tagName.toLowerCase(), fc: at(e, 'formcontrolname'), id: at(e, 'id'), name: at(e, 'name'), label: labelOf(e), shown: (e.innerText || '').trim().slice(0, 40) }));
+    return { url: location.href, inputs, dds };
+  };
+  const d = await formFrame.evaluate(collect).catch(() => null);
+  if (!d) return;
+  console.log('   ── form controls (add any missing one to adhoc.fields) ──');
+  const inputLine = (c) => c.fc ? `{ kind: input, label: ${c.label || c.fc}, selector: 'input[formcontrolname="${c.fc}" i]', value: "" }`
+    : c.id ? `{ kind: input, label: ${c.label || c.id}, selector: '#${c.id}', value: "" }`
+    : c.name ? `{ kind: input, label: ${c.label || c.name}, selector: '[name="${c.name}"]', value: "" }`
+    : `{ kind: input, label: ${c.label || '?'}, selector: '<add one>', value: "" }`;
+  const ddLine = (c) => c.fc ? `{ kind: dropdown, label: ${c.label || c.fc}, fc: ${c.fc}, value: "" }`
+    : c.id ? `{ kind: dropdown, label: ${c.label || c.id}, selector: '#${c.id}', value: "" }`
+    : `{ kind: dropdown, label: ${c.label || '?'}, selector: '<add one>', value: "" }`;
+  for (const c of d.inputs) console.log(`     input  type=${c.type}  ${c.label ? `“${c.label}”  ` : ''}→  ${inputLine(c)}`);
+  for (const c of d.dds) console.log(`     dropdown ${c.shown ? `[${c.shown}]  ` : ''}${c.label ? `“${c.label}”  ` : ''}→  ${ddLine(c)}`);
+  const file = path.join(OUT_DIR, `login-probe-${tag}.json`);
+  fs.writeFileSync(file, JSON.stringify(d, null, 2));
+  console.log(`   📄 ${file}`);
+}
+
 // The Ad-Hoc connect flow: open the form, fill it, click Connect, capture the
 // session tab. `ad` is the config's `adhoc:` block. Returns the new session
 // Page on success, or false.
@@ -323,15 +366,26 @@ async function runAdhoc(page, context, ad) {
   await formFrame.locator(ad.formWait).first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
   console.log('   ✓ form open');
 
-  // 3. Fill the form (input fields + dropdowns), from the config.
+  // 2b. DISCOVERY — list every control on the form so an extra field you don't
+  // yet know about is revealed with a ready-to-paste config line. On by default;
+  // set `adhoc.probeForm: false` to silence it once your config is complete.
+  if (ad.probeForm !== false) await dumpFormControls(formFrame, 'adhoc-form');
+
+  // 3. Fill the form (input fields + dropdowns), from the config. Each field is
+  // isolated so one unknown/misconfigured field can't abort the whole run.
   console.log('▶ 3. filling the form…');
   const filled = {};
   for (const f of ad.fields || []) {
-    const value = await resolveValue({ value: f.value, secret: f.secret, name: f.label });
-    if (f.skipIfEmpty && !value) { continue; }
-    if (f.kind === 'dropdown') filled[f.label] = await setDropdown(formFrame, page, { fc: f.fc, label: f.label }, value);
-    else filled[f.label] = await fillField(formFrame, f.label, value, { optional: !!f.optional, ...(f.selector ? { selector: f.selector } : {}) });
-    console.log(`   ✓ ${f.kind || 'input'} ${f.label}: ${f.secret ? '(secret hidden)' : JSON.stringify(value)}`);
+    try {
+      const value = await resolveValue({ value: f.value, secret: f.secret, name: f.label });
+      if (f.skipIfEmpty && !value) { continue; }
+      if (f.kind === 'dropdown') filled[f.label] = await setDropdown(formFrame, page, { fc: f.fc, selector: f.selector, label: f.label }, value);
+      else filled[f.label] = await fillField(formFrame, f.label, value, { optional: !!f.optional, ...(f.selector ? { selector: f.selector } : {}) });
+      console.log(`   ✓ ${f.kind || 'input'} ${f.label}: ${f.secret ? '(secret hidden)' : JSON.stringify(value)}`);
+    } catch (e) {
+      filled[f.label] = false;
+      console.warn(`   [warn] ${f.label}: ${e.message}`);
+    }
   }
 
   // 4. Click Connect (wait for it to become enabled first), capture the tab.
