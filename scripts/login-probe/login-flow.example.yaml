@@ -1,8 +1,15 @@
 # ── Ad-hoc multi-step login flow (throwaway; NOT the repo's config) ──────────
 # A SEQUENCE of steps. Each step locates ONE control, optionally types a value,
-# then acts (enter | click | none). Steps run in order; the runner WAITS for each
-# step's control to appear across ALL frames (handles iframes + dynamically
-# generated forms), so page-to-page transitions happen automatically.
+# then either does an action (enter | click | none) OR presses a key sequence
+# (keys: [...]). Steps run in order; the runner WAITS for each step's control to
+# appear across ALL frames (handles iframes + dynamically generated forms), so
+# page-to-page transitions happen automatically.
+#
+# action: enter | click | none         (what to do on the located element)
+# keys:   ["Tab","Enter"]              (press keys IN ORDER from the filled field
+#                                       — e.g. Tab onto the submit button then
+#                                       Enter, with NO submit element to locate;
+#                                       `keys` replaces `action`)
 #
 # selector forms — use an id when one exists, else tag+type (your case):
 #   id:usernameBox        →  [id="usernameBox"]        (preferred when present)
@@ -33,7 +40,7 @@ successText: "accounts view"
 stepTimeoutMs: 20000        # how long to wait for each step's control to appear
 
 steps:
-  # ── Page 1: username + password + "Log in" ───────────────────────────────
+  # ── Page 1: username + password, then Tab → Enter to submit ───────────────
   - name: username
     selector: "id:username"            # ← real id if present, else e.g. type:text
     value: "your.username"
@@ -42,10 +49,10 @@ steps:
     selector: "type:password"
     value: "your-password"
     secret: true
-
-  - name: log-in
-    selector: "css:div.title"          # the "Log in" element from the sketch
-    action: click
+    keys: ["Tab", "Enter"]             # from the password field: Tab to the
+                                       # submit control, then Enter — no submit
+                                       # element needed. (Add more "Tab"s if the
+                                       # submit is several tab-stops away.)
 
   # ── Page 2: email → Enter ────────────────────────────────────────────────
   - name: email
