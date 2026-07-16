@@ -8,18 +8,22 @@
 // order; the runner WAITS for each step's control to appear (up to a timeout),
 // so page transitions and dynamically-generated forms are handled automatically.
 //
-// Like sendcmd, it searches EVERY frame (main doc + nested iframes), because a
-// portal often renders the login form inside an <iframe>.
+// It searches EVERY frame (main doc + nested iframes), because a portal often
+// renders the login form inside an <iframe>.
+//
+// This is a STANDALONE script — its only dependencies are `playwright` and
+// `js-yaml`. Install them once in this folder:
+//   npm install                 # if you have the package.json next to this file
+//   # …or explicitly:
+//   npm install js-yaml playwright && npx playwright install chromium
 //
 // Usage:
 //   node run-login-flow.js login-flow.yaml
 //   node run-login-flow.js login-flow.yaml --probe   # just dump the first page
 //
-// Secrets stay OUT of the file: a value of "env:SENDCMD_PASSWORD" is read from
-// that env var. Mark a step `secret: true` so its value is never echoed.
-//
-// Run it from the sendcmd checkout (it borrows the repo's playwright + js-yaml),
-// or set SENDCMD_REPO=/path/to/sendcmd.
+// Secrets: put values straight in the config file (chmod 600 it). A value of
+// "env:VAR" reads from an env var instead; mark a step `secret: true` so its
+// value is never echoed in the run log.
 
 const path = require('path');
 const fs = require('fs');
@@ -31,19 +35,20 @@ let _rl = null;
 const rl = () => (_rl = _rl || readline.createInterface({ input: process.stdin, output: process.stdout }));
 const ask = (q) => new Promise((res) => rl().question(q, (a) => res(a)));
 
-// ── Resolve playwright + js-yaml from the sendcmd checkout ────────────────────
-function fromRepo(mod) {
-  try { return require(mod); } catch { /* try the repo */ }
-  const roots = [process.env.SENDCMD_REPO, process.cwd(), __dirname,
-    path.join(__dirname, '..'), path.join(__dirname, '..', '..')].filter(Boolean);
-  for (const r of roots) {
-    try { return require(path.join(r, 'node_modules', mod)); } catch { /* next */ }
+// ── Dependencies — resolved from THIS folder's node_modules ───────────────────
+// Node resolves a bare require() from node_modules walking up from this file, so
+// `npm install` in this directory (or any parent) is all that's needed.
+function need(mod) {
+  try { return require(mod); }
+  catch {
+    console.error(`\n✗ Missing dependency "${mod}". Install the two deps in this folder, then re-run:\n` +
+      `    npm install js-yaml playwright\n` +
+      `    npx playwright install chromium\n`);
+    process.exit(2);
   }
-  console.error(`Cannot find "${mod}". Run from the sendcmd checkout, or set SENDCMD_REPO=/path/to/sendcmd.`);
-  process.exit(2);
 }
-const { chromium } = fromRepo('playwright');
-const yaml = fromRepo('js-yaml');
+const { chromium } = need('playwright');
+const yaml = need('js-yaml');
 
 const cfgPath = process.argv[2];
 const PROBE_ONLY = process.argv.includes('--probe');

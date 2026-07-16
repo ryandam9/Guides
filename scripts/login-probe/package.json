@@ -1,0 +1,19 @@
+{
+  "name": "login-flow-probe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Config-driven multi-step login probe (Playwright). Standalone — no external project.",
+  "bin": {
+    "login-flow": "run-login-flow.js"
+  },
+  "scripts": {
+    "probe": "node run-login-flow.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "js-yaml": "^4.3.0",
+    "playwright": "^1.48.0"
+  }
+}

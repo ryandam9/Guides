@@ -1,0 +1,11 @@
+# Installed dependencies (run `npm install` here to create these).
+node_modules/
+package-lock.json
+
+# Your REAL filled-in config — must never be committed (holds plaintext creds).
+login-flow.yaml
+*.local.yaml
+
+# Runtime artifacts the probe writes (field dumps + screenshots).
+login-probe-*.json
+login-probe-*.png

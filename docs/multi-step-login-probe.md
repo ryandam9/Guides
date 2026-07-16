@@ -6,8 +6,10 @@
 > for a portal whose login differs page-to-page, before wiring anything into a
 > larger automation.
 
-Script: [`scripts/run-login-flow.js`](../scripts/run-login-flow.js) ·
-Example config: [`scripts/login-flow.example.yaml`](../scripts/login-flow.example.yaml)
+Folder: [`scripts/login-probe/`](../scripts/login-probe/) —
+[`run-login-flow.js`](../scripts/login-probe/run-login-flow.js) ·
+[`login-flow.example.yaml`](../scripts/login-probe/login-flow.example.yaml) ·
+[`package.json`](../scripts/login-probe/package.json)
 
 ---
 
@@ -35,21 +37,21 @@ current page** (with a suggested selector for each) to the console and a JSON
 file, plus a screenshot — so you can read off the real id/type and fix that one
 line.
 
-## 2. Requirements
+## 2. Install (standalone)
 
-Node.js and Playwright (with a browser installed):
-
-```bash
-npm install playwright
-npx playwright install chromium
-```
-
-Run it from a checkout that has `playwright` and `js-yaml` in `node_modules`, or
-point it at one:
+The script depends only on **`playwright`** and **`js-yaml`**. Install them once
+inside the `scripts/login-probe/` folder — the bundled `package.json` pins both:
 
 ```bash
-SENDCMD_REPO=/path/to/a/checkout node scripts/run-login-flow.js login-flow.yaml
+cd scripts/login-probe
+npm install                      # installs playwright + js-yaml (from package.json)
+npx playwright install chromium  # one-time browser download
 ```
+
+No parent project and nothing else is required — `node_modules/` lives right in
+that folder (and is git-ignored). If you ever see
+`✗ Missing dependency "js-yaml"`, you're running it from a folder without those
+deps installed; run the two commands above.
 
 ## 3. Config format
 
@@ -117,12 +119,15 @@ If you'd rather it hold for an explicit keypress instead, use a `pause` step:
 
 ## 5. Running it
 
+From inside `scripts/login-probe/` (copy the example to your own config first):
+
 ```bash
-chmod 600 login-flow.yaml
-node scripts/run-login-flow.js login-flow.yaml
+cp login-flow.example.yaml login-flow.yaml   # then edit selectors + values
+chmod 600 login-flow.yaml                     # holds plaintext creds
+node run-login-flow.js login-flow.yaml
 
 # just dump the first page's fields/buttons (no flow):
-node scripts/run-login-flow.js login-flow.yaml --probe
+node run-login-flow.js login-flow.yaml --probe
 ```
 
 The browser is left open at the end so you can inspect the result; press
