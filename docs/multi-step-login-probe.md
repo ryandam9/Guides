@@ -87,6 +87,35 @@ Each step, after any `value`, does **one** of:
 the button required. Add more `"Tab"`s if it's several tab-stops away, and tune
 the pace with `keyDelayMs` (default 150).
 
+### Keyboard-only pages (no selector at all)
+
+Some pages are easiest to drive purely by keyboard — Tab onto the field, type,
+Tab to the button, Enter. Omit `selector` entirely and the step becomes
+**keyboard-only**: it types the value into whatever is currently focused and
+presses these key lists via the keyboard.
+
+| Field | Does |
+| --- | --- |
+| `preKeys: ["Tab"]` | keys pressed **before** typing — e.g. Tab off the URL bar onto the text box |
+| `value: "…"` | typed into the **currently focused** element (not a located one) |
+| `keys: ["Tab","Tab","Enter"]` | keys pressed **after** typing — Tab to the submit, then Enter |
+| `waitBeforeMs` / `waitMs` | fixed pauses before / after the step (let the page load / settle) |
+
+```yaml
+# Page 2: Tab into the box, type email, Tab twice, Enter, wait 5s — no selector.
+- name: email
+  waitBeforeMs: 2000
+  preKeys: ["Tab"]
+  value: "you@example.com"
+  keys: ["Tab", "Tab", "Enter"]
+  waitMs: 5000
+```
+
+`preKeys` also works on a selector step (it focuses the located element, then
+presses them). Since a keyboard-only step doesn't locate anything, give it a
+`waitBeforeMs` so a freshly-loaded page has time to render before it starts
+tabbing. If the cursor doesn't land where you expect, adjust the `preKeys` count.
+
 ### Selector forms
 
 | Form | Resolves to | Use when |

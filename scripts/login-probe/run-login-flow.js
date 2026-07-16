@@ -240,37 +240,60 @@ async function waitForSuccess(page, phrase, timeout = 30000) {
       if (!step.selector) { await page.waitForTimeout(step.waitMs || 300); continue; }
     }
 
-    const el = await findInAnyFrame(page, step.selector, { timeout: step.timeoutMs || STEP_TIMEOUT });
-    if (!el) {
-      if (step.optional) { console.log('   • optional — not found, skipping'); continue; }
-      console.error(`   ✗ selector not found: ${step.selector}`);
-      await dumpCandidates(page, `miss-step-${n + 1}`);
-      await page.screenshot({ path: path.join(OUT_DIR, `login-probe-miss-${n + 1}.png`), fullPage: true }).catch(() => {});
-      ok = false;
-      break;
-    }
-    const value = await resolveValue(step);
-    if (value != null) {
-      await el.fill(value, { timeout: 5000 }).catch(async () => { await el.click().catch(() => {}); await el.type(value); });
-      console.log(`   ✓ filled ${step.secret ? '(secret hidden)' : JSON.stringify(value)}`);
-    }
-    // keys: press a KEY SEQUENCE from the just-filled field — e.g. [Tab, Enter]
-    // to move focus onto the page's submit control and activate it WITHOUT
-    // naming a submit element. Focus starts on the filled field (fill focuses
-    // it); if the step had no value, focus the located element first. `keys`
-    // takes the place of `action`.
-    if (step.keys != null) {
-      const keys = Array.isArray(step.keys) ? step.keys : String(step.keys).split(/[\s,]+/).filter(Boolean);
-      if (value == null) await el.focus().catch(() => {});
+    // Press a list of keys via the keyboard (space/comma string or array).
+    const pressKeys = async (spec) => {
+      const keys = Array.isArray(spec) ? spec : String(spec).split(/[\s,]+/).filter(Boolean);
       for (const k of keys) {
         await page.keyboard.press(k);
         console.log(`   ⌨ ${k}`);
         await page.waitForTimeout(step.keyDelayMs || 150);
       }
+    };
+
+    // waitBeforeMs: a fixed pause BEFORE acting — lets a freshly-loaded page
+    // settle before a keyboard-only (no-selector) step starts tabbing.
+    if (step.waitBeforeMs) { console.log(`   ⏱ waiting ${step.waitBeforeMs}ms before acting…`); await page.waitForTimeout(step.waitBeforeMs); }
+
+    const value = await resolveValue(step);
+
+    if (step.selector) {
+      // ── Selector step: locate the control, then fill / act on it ──────────
+      const el = await findInAnyFrame(page, step.selector, { timeout: step.timeoutMs || STEP_TIMEOUT });
+      if (!el) {
+        if (step.optional) { console.log('   • optional — not found, skipping'); continue; }
+        console.error(`   ✗ selector not found: ${step.selector}`);
+        await dumpCandidates(page, `miss-step-${n + 1}`);
+        await page.screenshot({ path: path.join(OUT_DIR, `login-probe-miss-${n + 1}.png`), fullPage: true }).catch(() => {});
+        ok = false;
+        break;
+      }
+      if (step.preKeys != null) { await el.focus().catch(() => {}); await pressKeys(step.preKeys); }
+      if (value != null) {
+        await el.fill(value, { timeout: 5000 }).catch(async () => { await el.click().catch(() => {}); await el.type(value); });
+        console.log(`   ✓ filled ${step.secret ? '(secret hidden)' : JSON.stringify(value)}`);
+      }
+      // keys: a key sequence from the just-filled field (e.g. [Tab, Enter]) to
+      // reach + activate the submit control WITHOUT naming it. `keys` replaces
+      // `action`; focus starts on the filled field (fill focuses it).
+      if (step.keys != null) {
+        if (value == null && step.preKeys == null) await el.focus().catch(() => {});
+        await pressKeys(step.keys);
+      } else {
+        const action = step.action || (value != null ? 'none' : 'click');
+        if (action === 'enter') { await el.press('Enter'); console.log('   ↵ pressed Enter'); }
+        else if (action === 'click') { await el.click(); console.log('   ✓ clicked'); }
+      }
     } else {
-      const action = step.action || (value != null ? 'none' : 'click');
-      if (action === 'enter') { await el.press('Enter'); console.log('   ↵ pressed Enter'); }
-      else if (action === 'click') { await el.click(); console.log('   ✓ clicked'); }
+      // ── Keyboard-only step (no selector): operate on the CURRENT focus ─────
+      // e.g. preKeys [Tab] to move off the URL bar into the text box, type the
+      // value into whatever is focused, then keys [Tab, Tab, Enter] to submit.
+      if (step.preKeys != null) await pressKeys(step.preKeys);
+      if (value != null) {
+        await page.keyboard.type(value, { delay: step.typeDelayMs || 30 });
+        console.log(`   ⌨ typed ${step.secret ? '(secret hidden)' : JSON.stringify(value)}`);
+      }
+      if (step.keys != null) await pressKeys(step.keys);
+      else if (step.action === 'enter') { await page.keyboard.press('Enter'); console.log('   ↵ pressed Enter'); }
     }
     await page.waitForTimeout(step.waitMs || 800);
   }

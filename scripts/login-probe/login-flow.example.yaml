@@ -5,11 +5,17 @@
 # appear across ALL frames (handles iframes + dynamically generated forms), so
 # page-to-page transitions happen automatically.
 #
-# action: enter | click | none         (what to do on the located element)
-# keys:   ["Tab","Enter"]              (press keys IN ORDER from the filled field
-#                                       — e.g. Tab onto the submit button then
-#                                       Enter, with NO submit element to locate;
-#                                       `keys` replaces `action`)
+# action:  enter | click | none        (what to do on the located element)
+# keys:    ["Tab","Enter"]             (press keys IN ORDER after the value — e.g.
+#                                       Tab onto the submit button then Enter,
+#                                       with NO submit element; replaces `action`)
+# preKeys: ["Tab"]                     (press keys BEFORE typing — e.g. Tab to
+#                                       move the cursor onto the text box first)
+# waitBeforeMs / waitMs                (fixed pauses before / after the step)
+#
+# A step with NO `selector` is KEYBOARD-ONLY: it doesn't locate anything — it
+# types the value into whatever is currently focused and presses pre/keys via
+# the keyboard. Use it when you navigate a page purely by Tab (see pages 2 & 3).
 #
 # selector forms — use an id when one exists, else tag+type (your case):
 #   id:usernameBox        →  [id="usernameBox"]        (preferred when present)
@@ -54,18 +60,24 @@ steps:
                                        # element needed. (Add more "Tab"s if the
                                        # submit is several tab-stops away.)
 
-  # ── Page 2: email → Enter ────────────────────────────────────────────────
+  # ── Page 2: Tab into the box → email → Tab twice → Enter → wait 5s ────────
+  # Keyboard-only: NO selector. It types into whatever the keyboard focuses, so
+  # preKeys tabs off the URL bar onto the text box first.
   - name: email
-    selector: "type:email"
+    waitBeforeMs: 2000                 # let page 2 render before tabbing (tune)
+    preKeys: ["Tab"]                   # move cursor off the URL bar onto the box
     value: "you@example.com"
-    action: enter
+    keys: ["Tab", "Tab", "Enter"]      # Tab twice to the submit, then Enter
+    waitMs: 5000                       # wait 5s for the next page
 
-  # ── Page 3: password (SAME password) → Enter ─────────────────────────────
+  # ── Page 3: password → Tab twice → Enter → wait 5s ───────────────────────
+  # Keyboard-only. Page 3 loads with the cursor already on the password field
+  # (add `preKeys: ["Tab"]` if that's not true in your portal).
   - name: password-2
-    selector: "type:password"
     value: "your-password"             # same password as page 1
     secret: true
-    action: enter
+    keys: ["Tab", "Tab", "Enter"]      # Tab twice to the submit, then Enter
+    waitMs: 5000                       # wait 5s for the next page
 
   # ── (optional) MFA / OTP — you type the code in the BROWSER; runner waits ─
   # Enable this if an OTP page appears here. No terminal input: enter the code
