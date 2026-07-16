@@ -68,10 +68,24 @@ steps:
     selector: "type:password"
     value: "your-password"
     secret: true                 # never echoed in the run log
-  - name: log-in
-    selector: "css:div.title"
-    action: click                # enter | click | none
+    keys: ["Tab", "Enter"]       # submit by keyboard — see "Submitting" below
 ```
+
+### Submitting a page
+
+Each step, after any `value`, does **one** of:
+
+| Field | Does | Use for |
+| --- | --- | --- |
+| `action: enter` | press Enter on the located element | single-field pages (email, OTP) |
+| `action: click` | click the located element | a real submit button you can select |
+| `action: none` | nothing (default when a value was typed) | just fill this field, submit later |
+| `keys: ["Tab","Enter"]` | from the filled field, press the keys in order | **submit with no submit element** — Tab onto the submit control, then Enter |
+
+`keys` replaces `action`. Focus starts on the field you just filled, so
+`["Tab", "Enter"]` tabs to the submit button and activates it — no selector for
+the button required. Add more `"Tab"`s if it's several tab-stops away, and tune
+the pace with `keyDelayMs` (default 150).
 
 ### Selector forms
 

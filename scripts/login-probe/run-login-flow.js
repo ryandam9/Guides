@@ -254,9 +254,24 @@ async function waitForSuccess(page, phrase, timeout = 30000) {
       await el.fill(value, { timeout: 5000 }).catch(async () => { await el.click().catch(() => {}); await el.type(value); });
       console.log(`   ✓ filled ${step.secret ? '(secret hidden)' : JSON.stringify(value)}`);
     }
-    const action = step.action || (value != null ? 'none' : 'click');
-    if (action === 'enter') { await el.press('Enter'); console.log('   ↵ pressed Enter'); }
-    else if (action === 'click') { await el.click(); console.log('   ✓ clicked'); }
+    // keys: press a KEY SEQUENCE from the just-filled field — e.g. [Tab, Enter]
+    // to move focus onto the page's submit control and activate it WITHOUT
+    // naming a submit element. Focus starts on the filled field (fill focuses
+    // it); if the step had no value, focus the located element first. `keys`
+    // takes the place of `action`.
+    if (step.keys != null) {
+      const keys = Array.isArray(step.keys) ? step.keys : String(step.keys).split(/[\s,]+/).filter(Boolean);
+      if (value == null) await el.focus().catch(() => {});
+      for (const k of keys) {
+        await page.keyboard.press(k);
+        console.log(`   ⌨ ${k}`);
+        await page.waitForTimeout(step.keyDelayMs || 150);
+      }
+    } else {
+      const action = step.action || (value != null ? 'none' : 'click');
+      if (action === 'enter') { await el.press('Enter'); console.log('   ↵ pressed Enter'); }
+      else if (action === 'click') { await el.click(); console.log('   ✓ clicked'); }
+    }
     await page.waitForTimeout(step.waitMs || 800);
   }
 
