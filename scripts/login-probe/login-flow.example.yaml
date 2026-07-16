@@ -11,7 +11,9 @@
 #                                       with NO submit element; replaces `action`)
 # preKeys: ["Tab"]                     (press keys BEFORE typing — e.g. Tab to
 #                                       move the cursor onto the text box first)
-# waitBeforeMs / waitMs                (fixed pauses before / after the step)
+# timing (ms, all optional): waitBeforeMs → [preKeys] → waitBeforeTypeMs →
+#   TYPE value → waitAfterTypeMs → [keys/action] → waitMs. So you can pause
+#   both BEFORE and AFTER entering the details on any step.
 #
 # A step with NO `selector` is KEYBOARD-ONLY: it doesn't locate anything — it
 # types the value into whatever is currently focused and presses pre/keys via
@@ -70,12 +72,15 @@ steps:
     keys: ["Tab", "Tab", "Enter"]      # Tab twice to the submit, then Enter
     waitMs: 5000                       # wait 5s for the next page
 
-  # ── Page 3: password → Tab twice → Enter → wait 5s ───────────────────────
+  # ── Page 3: password, with waits bracketing the typing → Tab twice → Enter ─
   # Keyboard-only. Page 3 loads with the cursor already on the password field
   # (add `preKeys: ["Tab"]` if that's not true in your portal).
   - name: password-2
+    waitBeforeMs: 1000                 # let page 3 settle before doing anything
     value: "your-password"             # same password as page 1
     secret: true
+    waitBeforeTypeMs: 500              # pause just BEFORE typing the password
+    waitAfterTypeMs: 500               # pause just AFTER typing, before submit
     keys: ["Tab", "Tab", "Enter"]      # Tab twice to the submit, then Enter
     waitMs: 5000                       # wait 5s for the next page
 
