@@ -95,3 +95,39 @@ steps:
   - name: submit
     selector: "type:submit"
     action: click
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Ad-Hoc connection (optional) — runs AFTER the login steps above reach the
+# Account view. Opens the Ad-Hoc form, fills it, and clicks Connect (which opens
+# the remote session tab). The selectors/values below are the sendcmd "nonprod"
+# defaults — adjust them to your portal. Remove this whole block to stop at login.
+adhoc:
+  # The control that opens the Ad-Hoc form (searched across all frames).
+  button:
+    testIds: ["accPAdHocConnectionBtn"]     # stable data-testid(s), tried first
+    text: "ad[-\\s]?hoc\\s*connect"          # …else match by name/text (regex, i)
+  accountsNavText: "accounts"                # if the button isn't on the landing
+                                             # page, click this nav item first
+
+  # A selector that identifies the FRAME hosting the form, and one waited on for
+  # visibility before filling.
+  formProbe: 'input[formcontrolname="inpAddress" i], [formcontrolname="ddlPolicy" i]'
+  formWait:  'input[formcontrolname="inpAddress" i]'
+
+  # The form fields, in order. kind: input | dropdown.
+  #   input    → selector + value (fill)
+  #   dropdown → fc (Angular formcontrolname) + value (pick the option)
+  fields:
+    - { kind: dropdown, label: Platform, fc: ddlPolicy,               value: "PSM-SecureConnect" }
+    - { kind: dropdown, label: Client,   fc: ddlConnectionComponents, value: "SSH" }
+    - { kind: input, label: Address,  selector: 'input[formcontrolname="inpAddress" i]',  value: "10.0.0.10" }
+    - { kind: input, label: Username, selector: 'input[formcontrolname="inpUsername" i]', value: "CORP\\your.username" }
+    # Password is often collected at the terminal instead of the form → optional.
+    - { kind: input, label: Password, selector: 'input[formcontrolname="inpPassword" i]', value: "your-target-password", optional: true, secret: true }
+    # Reason only filled when a value is set.
+    - { kind: input, label: Reason,   selector: 'input[formcontrolname="inpReason" i]',   value: "", optional: true, skipIfEmpty: true }
+
+  # The dialog's Connect button (waited on until enabled, then clicked).
+  connect:
+    text: "^\\s*connect\\s*$"
+    primarySelector: "button.ui-button-primary"
