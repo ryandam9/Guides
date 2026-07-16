@@ -40,7 +40,7 @@
 #   page's selector/text is visible the runner continues. (waitFor accepts the
 #   same selector forms: id:/type:/name:/testid:/text:/css:.)
 
-startUrl: "https://YOUR-ENV-HOST/JaffaVault/v10/logon/…"
+startUrl: "https://vault.example.com/login"
 
 # Success = a page whose BODY TEXT contains this phrase (case-insensitive).
 successText: "accounts view"
