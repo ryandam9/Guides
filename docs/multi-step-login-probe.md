@@ -213,22 +213,34 @@ same as the login steps. Remove the `adhoc:` block to stop at login.
 ### Discovering an extra field
 
 When the form opens, `probeForm: true` (the default) prints **every control on
-the form**, each with a ready-to-paste config line — so a field you didn't know
-about is easy to add. For example the run might show:
+the form**, numbered per kind, each with a ready-to-paste config line — so a
+field you didn't know about is easy to add. For example the run might show:
 
 ```
    ── form controls (add any missing one to adhoc.fields) ──
-     dropdown [Choose…]  “Realm”  →  { kind: dropdown, label: Realm, fc: ddlRealm, value: "" }
-     input  type=text  “Port”     →  { kind: input, label: Port, selector: '#port', value: "" }
+     dropdown #1  [Choose…]  “Realm”  →  { kind: dropdown, label: Realm, fc: ddlRealm, value: "" }
+     input  #1  type=text  “Port”     →  { kind: input, label: Port, selector: '#port', value: "" }
+     input  #2  type=text             →  { kind: input, position: 2, value: "" }   # no id/name/label — filled by position
 ```
 
 Copy the line for the extra field into `adhoc.fields` (place it **after**
 whatever field makes it appear — e.g. after `Client` if selecting the client
-reveals it), set its `value`, and re-run. A dropdown can be matched by
-`fc:` (Angular `formcontrolname`) **or** by `selector:` if it has no
-formcontrolname. Each field is filled independently, so an unknown or
-mis-selected field logs a `[warn]` and the run continues rather than aborting.
-Set `probeForm: false` to silence the dump once your config is complete.
+reveals it), set its `value`, and re-run. Each field is matched one of three
+ways:
+
+| Match by | Config | Use when |
+| --- | --- | --- |
+| `selector:` | `selector: '#port'` (input) / `selector: '#realmDropdown'` (dropdown) | the control has an id/name/CSS handle |
+| `fc:` | `fc: ddlRealm` (dropdown) | it's an Angular control with a `formcontrolname` |
+| `position:` | `position: 2` — or just omit it and give only `kind` + `value` | it has **no id, name, or formcontrolname** |
+
+`position` is the control's slot **among its own kind** (inputs counted
+separately from dropdowns), 1-based, exactly as numbered in the dump above.
+Since `adhoc.fields` is already in form order, you can drop `position:` entirely
+and let the field's ordinal in the list stand in for it. Each field is filled
+independently, so an unknown or mis-selected field logs a `[warn]` and the run
+continues rather than aborting. Set `probeForm: false` to silence the dump once
+your config is complete.
 
 > This connects (opens the remote session tab). Driving the session *inside*
 > that tab — the Guacamole canvas, host-key, password, `kinit` — is a much

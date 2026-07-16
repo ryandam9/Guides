@@ -192,6 +192,28 @@ async function waitForSuccess(page, phrase, timeout = 30000) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// Positional field support — an extra control that has no id/name/label is
+// located purely by its POSITION among the form's same-kind controls (1-based),
+// matching the numbering printed by the form-controls discovery dump below.
+const POS_INPUT_SEL = 'input:not([type="hidden"]):visible, textarea:visible';
+const POS_DROPDOWN_SEL = 'select:visible, p-dropdown:visible, mat-select:visible, [role="combobox"]:visible, .ui-dropdown:visible, .p-dropdown:visible';
+
+// fillInputAt — fill the Nth (1-based) visible input/textarea on the form, for a
+// field that can only be identified by position. Same fill→click+type fallback
+// as a selector step, polling until the control renders.
+async function fillInputAt(scope, index1, value, { timeout = 15000 } = {}) {
+  const el = scope.locator(POS_INPUT_SEL).nth(index1 - 1);
+  const deadline = Date.now() + timeout;
+  do {
+    if (await el.count().catch(() => 0)) {
+      try { await el.fill(value, { timeout: 1000 }); return true; }
+      catch { try { await el.click({ timeout: 1000 }); await el.type(value); return true; } catch { /* retry */ } }
+    }
+    await sleep(250);
+  } while (Date.now() < deadline);
+  throw new Error(`no fillable input at position ${index1} on the form`);
+}
+
 // findClickable — search EVERY frame for a control by data-testid, accessible
 // name, or visible text; poll until it appears. (sendcmd automate.js:1776)
 function clickableCandidates(root, nameRegex, testIds) {
@@ -244,22 +266,27 @@ async function fillField(scope, labelText, value, { optional = false, timeout, s
 }
 
 // setDropdown — native <select>, PrimeNG <p-dropdown> overlay, or a label-based
-// combobox. Matched by formcontrolname `fc`, OR by a raw `selector` (for an
-// extra field that has no formcontrolname). (ported from sendcmd automate.js:1822)
+// combobox. Matched by formcontrolname `fc`, a raw `selector`, or a pre-resolved
+// `trigger` locator (for an extra field found only by position). (ported from
+// sendcmd automate.js:1822)
 async function setDropdown(scope, page, field, value, { timeout = 15000 } = {}) {
-  const { fc, label, selector } = field;
+  const { fc, label, selector, trigger: preTrigger } = field;
   const wanted = new RegExp(escapeRegex(value), 'i');
   const wantedExact = new RegExp(`^\\s*${escapeRegex(value)}\\s*$`, 'i');
 
-  // Native <select>: a `selector` may itself point at one; otherwise build from fc.
-  const nativeSel = (selector ? scope.locator(selector) : scope.locator(`select[formcontrolname="${fc}" i]`)).first();
+  // Native <select>: a positional trigger or a `selector` may point straight at
+  // one; otherwise build it from fc.
+  const nativeSel = (preTrigger || (selector ? scope.locator(selector) : scope.locator(`select[formcontrolname="${fc}" i]`))).first();
   if (await nativeSel.count().catch(() => 0)) {
     try { await nativeSel.selectOption({ label: value }); return true; } catch { /* not a native select / fall through */ }
   }
 
-  // Custom dropdown trigger: the given selector, else the fc-based p-dropdown.
+  // Custom dropdown trigger: the positional element, the given selector, else the
+  // fc-based p-dropdown.
   let trigger;
-  if (selector) {
+  if (preTrigger) {
+    trigger = preTrigger;
+  } else if (selector) {
     trigger = scope.locator(selector).first();
   } else {
     const prime = scope.locator(`p-dropdown[formcontrolname="${fc}" i]`).first();
@@ -320,15 +347,17 @@ async function dumpFormControls(formFrame, tag) {
   const d = await formFrame.evaluate(collect).catch(() => null);
   if (!d) return;
   console.log('   ── form controls (add any missing one to adhoc.fields) ──');
-  const inputLine = (c) => c.fc ? `{ kind: input, label: ${c.label || c.fc}, selector: 'input[formcontrolname="${c.fc}" i]', value: "" }`
+  // `pos` is the control's 1-based position among its own kind — use it for a
+  // field with no id/name/label (`position:`), filled by slot instead of selector.
+  const inputLine = (c, pos) => c.fc ? `{ kind: input, label: ${c.label || c.fc}, selector: 'input[formcontrolname="${c.fc}" i]', value: "" }`
     : c.id ? `{ kind: input, label: ${c.label || c.id}, selector: '#${c.id}', value: "" }`
     : c.name ? `{ kind: input, label: ${c.label || c.name}, selector: '[name="${c.name}"]', value: "" }`
-    : `{ kind: input, label: ${c.label || '?'}, selector: '<add one>', value: "" }`;
-  const ddLine = (c) => c.fc ? `{ kind: dropdown, label: ${c.label || c.fc}, fc: ${c.fc}, value: "" }`
+    : `{ kind: input, position: ${pos}, value: "" }   # no id/name/label — filled by position`;
+  const ddLine = (c, pos) => c.fc ? `{ kind: dropdown, label: ${c.label || c.fc}, fc: ${c.fc}, value: "" }`
     : c.id ? `{ kind: dropdown, label: ${c.label || c.id}, selector: '#${c.id}', value: "" }`
-    : `{ kind: dropdown, label: ${c.label || '?'}, selector: '<add one>', value: "" }`;
-  for (const c of d.inputs) console.log(`     input  type=${c.type}  ${c.label ? `“${c.label}”  ` : ''}→  ${inputLine(c)}`);
-  for (const c of d.dds) console.log(`     dropdown ${c.shown ? `[${c.shown}]  ` : ''}${c.label ? `“${c.label}”  ` : ''}→  ${ddLine(c)}`);
+    : `{ kind: dropdown, position: ${pos}, value: "" }   # no id — filled by position`;
+  d.inputs.forEach((c, i) => console.log(`     input  #${i + 1}  type=${c.type}  ${c.label ? `“${c.label}”  ` : ''}→  ${inputLine(c, i + 1)}`));
+  d.dds.forEach((c, i) => console.log(`     dropdown #${i + 1}  ${c.shown ? `[${c.shown}]  ` : ''}${c.label ? `“${c.label}”  ` : ''}→  ${ddLine(c, i + 1)}`));
   const file = path.join(OUT_DIR, `login-probe-${tag}.json`);
   fs.writeFileSync(file, JSON.stringify(d, null, 2));
   console.log(`   📄 ${file}`);
@@ -375,16 +404,33 @@ async function runAdhoc(page, context, ad) {
   // isolated so one unknown/misconfigured field can't abort the whole run.
   console.log('▶ 3. filling the form…');
   const filled = {};
+  const posSeen = {};                 // per-kind counter → a field's implicit slot
   for (const f of ad.fields || []) {
+    const kind = f.kind || 'input';
+    posSeen[kind] = (posSeen[kind] || 0) + 1;
+    // A field with no id/selector/fc/label (or an explicit `position:`) is filled
+    // by POSITION. `adhoc.fields` is already in form order, so a positional
+    // field's slot is just its ordinal among same-kind fields here.
+    const byPosition = f.position != null || (!f.selector && !f.fc && !f.label);
+    const position = f.position != null ? f.position : posSeen[kind];
+    const label = f.label || `${kind}#${position}`;
     try {
-      const value = await resolveValue({ value: f.value, secret: f.secret, name: f.label });
+      const value = await resolveValue({ value: f.value, secret: f.secret, name: label });
       if (f.skipIfEmpty && !value) { continue; }
-      if (f.kind === 'dropdown') filled[f.label] = await setDropdown(formFrame, page, { fc: f.fc, selector: f.selector, label: f.label }, value);
-      else filled[f.label] = await fillField(formFrame, f.label, value, { optional: !!f.optional, ...(f.selector ? { selector: f.selector } : {}) });
-      console.log(`   ✓ ${f.kind || 'input'} ${f.label}: ${f.secret ? '(secret hidden)' : JSON.stringify(value)}`);
+      if (kind === 'dropdown') {
+        const spec = byPosition
+          ? { trigger: formFrame.locator(POS_DROPDOWN_SEL).nth(position - 1), label }
+          : { fc: f.fc, selector: f.selector, label };
+        filled[label] = await setDropdown(formFrame, page, spec, value);
+      } else if (byPosition) {
+        filled[label] = await fillInputAt(formFrame, position, value);
+      } else {
+        filled[label] = await fillField(formFrame, label, value, { optional: !!f.optional, ...(f.selector ? { selector: f.selector } : {}) });
+      }
+      console.log(`   ✓ ${kind}${byPosition ? ` @pos ${position}` : ''} ${label}: ${f.secret ? '(secret hidden)' : JSON.stringify(value)}`);
     } catch (e) {
-      filled[f.label] = false;
-      console.warn(`   [warn] ${f.label}: ${e.message}`);
+      filled[label] = false;
+      console.warn(`   [warn] ${label}: ${e.message}`);
     }
   }
 
