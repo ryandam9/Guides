@@ -27,9 +27,17 @@
 #   text:Log in           →  a control whose visible text is "Log in"
 #   css:div.title         →  a raw CSS selector, used as-is (any tag+type combo)
 #
-# value: put the literal value right here in the file (username, password,
-# email, …). Add `secret: true` so it is never echoed in the run log.
-#   ⚠ This file now holds plaintext passwords — keep it private: chmod 600 <file>.
+# value: the literal value right here in the file (username, password, email, …),
+#   OR a runtime source so a secret never sits in the file:
+#     keychain:jaffa-pwd    → read from the macOS Keychain (security CLI) at runtime
+#     env:PORTAL_PWD        → read from an environment variable
+#     prompt:One-time code  → ask at the terminal when the step runs (OTP/MFA)
+#   Add `secret: true` so the value is never echoed in the run log.
+#   macOS Keychain — add each item once (value goes in the password field):
+#     security add-generic-password -a "$USER" -s jaffa-username -w   # then type the value
+#     security add-generic-password -a "$USER" -s jaffa-pwd      -w
+#     security add-generic-password -a "$USER" -s jaffa-email    -w
+#   ⚠ Any literal passwords make this file sensitive — keep it private: chmod 600 <file>.
 #      The runner warns at startup if it is readable by group/others.
 #
 # MFA / OTP — you type the code in the BROWSER yourself; the runner just WAITS:
@@ -51,11 +59,11 @@ steps:
   # ── Page 1: username + password, then Tab → Enter to submit ───────────────
   - name: username
     selector: "id:username"            # ← real id if present, else e.g. type:text
-    value: "your.username"
+    value: "keychain:jaffa-username"   # ← read from the macOS Keychain at runtime
 
   - name: password
     selector: "type:password"
-    value: "your-password"
+    value: "keychain:jaffa-pwd"
     secret: true
     keys: ["Tab", "Enter"]             # from the password field: Tab to the
                                        # submit control, then Enter — no submit
@@ -68,7 +76,7 @@ steps:
   - name: email
     waitBeforeMs: 2000                 # let page 2 render before tabbing (tune)
     preKeys: ["Tab"]                   # move cursor off the URL bar onto the box
-    value: "you@example.com"
+    value: "keychain:jaffa-email"
     keys: ["Tab", "Tab", "Enter"]      # Tab twice to the submit, then Enter
     waitMs: 5000                       # wait 5s for the next page
 
@@ -77,7 +85,7 @@ steps:
   # (add `preKeys: ["Tab"]` if that's not true in your portal).
   - name: password-2
     waitBeforeMs: 1000                 # let page 3 settle before doing anything
-    value: "your-password"             # same password as page 1
+    value: "keychain:jaffa-pwd"        # same password as page 1
     secret: true
     waitBeforeTypeMs: 500              # pause just BEFORE typing the password
     waitAfterTypeMs: 500               # pause just AFTER typing, before submit

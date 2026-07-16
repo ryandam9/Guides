@@ -21,13 +21,15 @@
 //   node run-login-flow.js login-flow.yaml
 //   node run-login-flow.js login-flow.yaml --probe   # just dump the first page
 //
-// Secrets: put values straight in the config file (chmod 600 it). A value of
-// "env:VAR" reads from an env var instead; mark a step `secret: true` so its
-// value is never echoed in the run log.
+// Secrets: put values straight in the config file (chmod 600 it), or pull them at
+// runtime — "keychain:ITEM" reads from the macOS Keychain, "env:VAR" from an env
+// var, "prompt:Msg" asks at the terminal. Mark a step `secret: true` so its value
+// is never echoed in the run log.
 
 const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
+const { execFileSync } = require('child_process');
 
 // Lazy terminal prompt — for `pause` steps (finish MFA by hand, then Enter) and
 // `prompt:` values (type an OTP at runtime so it's never in the config/env).
@@ -103,6 +105,25 @@ async function findInAnyFrame(page, spec, { timeout = STEP_TIMEOUT } = {}) {
   return null;
 }
 
+// Read a secret from the macOS Keychain via the `security` CLI. The item is
+// matched by service name (-s — how `security add-generic-password -s NAME …`
+// stores it, and how Keychain Access labels it), falling back to account (-a)
+// then label (-l). Returns the stored string, or null if not found.
+function readKeychain(item) {
+  if (process.platform !== 'darwin') {
+    console.error(`   ✗ keychain: values require macOS (the \`security\` CLI); this host is "${process.platform}". Use env:/prompt: instead, or run on your Mac.`);
+    process.exit(3);
+  }
+  for (const flag of ['-s', '-a', '-l']) {
+    try {
+      const out = execFileSync('security', ['find-generic-password', flag, item, '-w'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      const val = out.replace(/\r?\n$/, '');   // -w appends a trailing newline
+      if (val) return val;
+    } catch { /* not found with this matcher — try the next */ }
+  }
+  return null;
+}
+
 async function resolveValue(step) {
   const v = step.value;
   if (v == null) return null;
@@ -112,6 +133,17 @@ async function resolveValue(step) {
     const got = process.env[name];
     if (got == null || got === '') {
       console.error(`   ✗ step "${step.name}": env var ${name} is unset. Run: export ${name}='…'`);
+      process.exit(3);
+    }
+    return got;
+  }
+  // keychain:ITEM — read from the macOS Keychain at runtime (never stored in the
+  // config or env). Add it once: security add-generic-password -a "$USER" -s ITEM -w
+  if (s.startsWith('keychain:')) {
+    const item = s.slice('keychain:'.length);
+    const got = readKeychain(item);
+    if (got == null || got === '') {
+      console.error(`   ✗ step "${step.name}": keychain item "${item}" not found (or empty). Add it, e.g.:  security add-generic-password -a "$USER" -s ${item} -w`);
       process.exit(3);
     }
     return got;
