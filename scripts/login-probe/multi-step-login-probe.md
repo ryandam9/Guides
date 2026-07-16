@@ -6,10 +6,10 @@
 > for a portal whose login differs page-to-page, before wiring anything into a
 > larger automation.
 
-Folder: [`scripts/login-probe/`](../scripts/login-probe/) —
-[`run-login-flow.js`](../scripts/login-probe/run-login-flow.js) ·
-[`login-flow.example.yaml`](../scripts/login-probe/login-flow.example.yaml) ·
-[`package.json`](../scripts/login-probe/package.json)
+Alongside this doc in [`scripts/login-probe/`](./) —
+[`run-login-flow.js`](./run-login-flow.js) ·
+[`login-flow.example.yaml`](./login-flow.example.yaml) ·
+[`package.json`](./package.json)
 
 ---
 
