@@ -119,9 +119,16 @@ adhoc:
   # know about is easy to spot and add below. Set false once your config is done.
   probeForm: true
 
-  # The form fields, filled IN ORDER. kind: input | dropdown.
-  #   input    → selector + value (fill)
-  #   dropdown → fc (Angular formcontrolname) OR selector, + value (pick option)
+  # The form fields, filled IN ORDER. kind: input | dropdown. A field is matched
+  # in one of three ways — use the first that the control supports:
+  #   selector      → input: selector + value (fill)
+  #   fc            → dropdown: Angular formcontrolname (or a selector), + value
+  #   position      → NEITHER an id/name nor an fc? Fill it by POSITION — its slot
+  #                   among the form's same-kind controls (inputs vs dropdowns),
+  #                   1-based, as numbered by the "form controls" dump. Because
+  #                   this list is already in form order, you can even OMIT
+  #                   `position:` and just give `kind` + `value` — the field's
+  #                   ordinal here is used automatically.
   # To add the extra field: run once, read its line from the "form controls"
   # dump, and paste it here (place it AFTER any field that makes it appear).
   fields:
@@ -137,6 +144,8 @@ adhoc:
     # - { kind: dropdown, label: Realm, fc: ddlRealm, value: "PROD" }        # by formcontrolname
     # - { kind: dropdown, label: Realm, selector: '#realmDropdown', value: "PROD" }  # by selector (no fc)
     # - { kind: input,    label: Port,  selector: '#port', value: "22" }
+    # - { kind: input,    position: 5, value: "22" }   # no id/name — filled by its slot
+    # - { kind: input,    value: "22" }                # same, position inferred from order here
 
   # The dialog's Connect button (waited on until enabled, then clicked).
   connect:
