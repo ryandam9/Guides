@@ -182,6 +182,186 @@ async function waitForSuccess(page, phrase, timeout = 30000) {
   return false;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Ad-Hoc connection — MINIMAL logic ported from sendcmd (automate.js / forms.js)
+// to open the Ad-Hoc form, fill it, and click Connect. Kept faithful to the
+// originals (findClickable / fillField / setDropdown) so it behaves the same;
+// sendcmd itself is NOT modified — this is an independent copy.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// findClickable — search EVERY frame for a control by data-testid, accessible
+// name, or visible text; poll until it appears. (sendcmd automate.js:1776)
+function clickableCandidates(root, nameRegex, testIds) {
+  return [
+    ...testIds.map((id) => root.locator(`[data-testid="${id}"]`)),
+    root.getByRole('button', { name: nameRegex }),
+    root.getByRole('link', { name: nameRegex }),
+    root.locator('button, a, [role="button"], [role="link"]').filter({ hasText: nameRegex }),
+    root.getByText(nameRegex),
+  ];
+}
+async function findClickable(page, nameRegex, { timeout = 30000, testIds = [] } = {}) {
+  const deadline = Date.now() + timeout;
+  do {
+    for (const frame of page.frames()) {
+      let candidates;
+      try { candidates = clickableCandidates(frame, nameRegex, testIds); } catch { continue; }
+      for (const locator of candidates) {
+        const el = locator.first();
+        if (await el.isVisible().catch(() => false)) return el;
+      }
+    }
+    await sleep(250);
+  } while (Date.now() < deadline);
+  return null;
+}
+
+// fillField — fill by selector → label → placeholder → name/id, polling until
+// the field renders (splash/interstitial pages). (sendcmd automate.js:1732)
+async function fillField(scope, labelText, value, { optional = false, timeout, selector } = {}) {
+  const limit = timeout ?? (optional ? 3000 : 30000);
+  const candidates = [
+    ...(selector ? [scope.locator(selector)] : []),
+    scope.getByLabel(labelText, { exact: false }),
+    scope.getByPlaceholder(labelText, { exact: false }),
+    scope.locator(`input[name="${labelText}" i], input[id="${labelText}" i]`),
+  ];
+  const deadline = Date.now() + limit;
+  do {
+    for (const locator of candidates) {
+      const el = locator.first();
+      if (await el.count().catch(() => 0)) {
+        try { await el.fill(value, { timeout: 1000 }); return true; } catch { /* next */ }
+      }
+    }
+    await sleep(250);
+  } while (Date.now() < deadline);
+  if (!optional) throw new Error(`Could not locate the "${labelText}" field within ${limit}ms.`);
+  return false;
+}
+
+// setDropdown — native <select>, PrimeNG <p-dropdown> overlay, or a label-based
+// combobox, matched by formcontrolname. (sendcmd automate.js:1822)
+async function setDropdown(scope, page, field, value, { timeout = 15000 } = {}) {
+  const { fc, label } = field;
+  const wanted = new RegExp(escapeRegex(value), 'i');
+  const wantedExact = new RegExp(`^\\s*${escapeRegex(value)}\\s*$`, 'i');
+
+  const nativeSel = scope.locator(`select[formcontrolname="${fc}" i]`).first();
+  if (await nativeSel.count().catch(() => 0)) {
+    try { await nativeSel.selectOption({ label: value }); return true; } catch { /* fall through */ }
+  }
+
+  const prime = scope.locator(`p-dropdown[formcontrolname="${fc}" i]`).first();
+  const trigger = (await prime.count().catch(() => 0)) ? prime : scope.locator(`[formcontrolname="${fc}" i]`).first();
+  if (await trigger.count().catch(() => 0)) {
+    const shown = (await trigger.innerText().catch(() => '')) || '';
+    if (wantedExact.test(shown)) { console.log(`      ${label} already set to "${value}".`); return true; }
+    await trigger.click().catch(() => {});
+
+    const filter = scope.locator('.ui-dropdown-filter input, .p-dropdown-filter, input.ui-dropdown-filter').first();
+    if (await filter.isVisible().catch(() => false)) await filter.fill(value).catch(() => {});
+
+    const optSel = '.ui-dropdown-item, .p-dropdown-item, p-dropdownitem, li[role="option"], [role="option"]';
+    const deadline = Date.now() + timeout;
+    do {
+      let opt = scope.locator(optSel).filter({ hasText: wantedExact }).first();
+      if (!(await opt.isVisible().catch(() => false))) opt = scope.locator(optSel).filter({ hasText: wanted }).first();
+      if (await opt.isVisible().catch(() => false)) { await opt.click(); return true; }
+      await sleep(200);
+    } while (Date.now() < deadline);
+    console.warn(`   [warn] Option "${value}" not found in the ${label} dropdown.`);
+    await page.keyboard.press('Escape').catch(() => {});
+  }
+
+  const combo = scope.getByLabel(label, { exact: false }).first();
+  if (await combo.count().catch(() => 0)) {
+    try {
+      await combo.click();
+      const option = scope.getByRole('option', { name: value }).first();
+      if (await option.count().catch(() => 0)) { await option.click(); return true; }
+      await combo.fill(value).catch(() => {});
+      return true;
+    } catch { /* ignore */ }
+  }
+  console.warn(`   [warn] Could not set "${label}" to "${value}" — leaving default.`);
+  return false;
+}
+
+// The Ad-Hoc connect flow: open the form, fill it, click Connect, capture the
+// session tab. `ad` is the config's `adhoc:` block. Returns the new session
+// Page on success, or false.
+async function runAdhoc(page, context, ad) {
+  console.log('\n═══ Ad-Hoc connection ═══');
+
+  // 1. Open the Ad-Hoc form (button by test-id / name, across all frames).
+  const testIds = (ad.button && ad.button.testIds) || [];
+  const nameRe = new RegExp((ad.button && ad.button.text) || 'ad[-\\s]?hoc\\s*connect', 'i');
+  console.log('▶ 1. clicking the Ad-Hoc connection button…');
+  let btn = await findClickable(page, nameRe, { timeout: 12000, testIds });
+  if (!btn && ad.accountsNavText) {
+    const nav = await findClickable(page, new RegExp(ad.accountsNavText, 'i'), { timeout: 5000 });
+    if (nav) { console.log('   · clicking the Accounts nav first…'); await nav.click().catch(() => {}); btn = await findClickable(page, nameRe, { timeout: 20000, testIds }); }
+  }
+  if (!btn) { console.error('   ✗ Ad-Hoc button not found'); await dumpCandidates(page, 'adhoc-button-miss'); return false; }
+  await btn.click();
+
+  // 2. Find the frame that hosts the form, then wait for it to be visible.
+  console.log('▶ 2. waiting for the form to open…');
+  let formFrame = page;
+  const fd = Date.now() + 15000;
+  for (;;) {
+    let found = null;
+    for (const f of page.frames()) { if (await f.locator(ad.formProbe).first().count().catch(() => 0)) { found = f; break; } }
+    if (found) { formFrame = found; break; }
+    if (Date.now() >= fd) break;
+    await sleep(250);
+  }
+  await formFrame.locator(ad.formWait).first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+  console.log('   ✓ form open');
+
+  // 3. Fill the form (input fields + dropdowns), from the config.
+  console.log('▶ 3. filling the form…');
+  const filled = {};
+  for (const f of ad.fields || []) {
+    const value = await resolveValue({ value: f.value, secret: f.secret, name: f.label });
+    if (f.skipIfEmpty && !value) { continue; }
+    if (f.kind === 'dropdown') filled[f.label] = await setDropdown(formFrame, page, { fc: f.fc, label: f.label }, value);
+    else filled[f.label] = await fillField(formFrame, f.label, value, { optional: !!f.optional, ...(f.selector ? { selector: f.selector } : {}) });
+    console.log(`   ✓ ${f.kind || 'input'} ${f.label}: ${f.secret ? '(secret hidden)' : JSON.stringify(value)}`);
+  }
+
+  // 4. Click Connect (wait for it to become enabled first), capture the tab.
+  console.log('▶ 4. submitting (Connect)…');
+  const connectRe = new RegExp((ad.connect && ad.connect.text) || '^\\s*connect\\s*$', 'i');
+  const primary = formFrame.locator((ad.connect && ad.connect.primarySelector) || 'button.ui-button-primary').filter({ hasText: connectRe }).first();
+  const byRole = formFrame.getByRole('button', { name: connectRe }).first();
+  const connect = (await primary.count().catch(() => 0)) ? primary : byRole;
+
+  let saw = false, enabled = false;
+  const cd = Date.now() + 20000;
+  do {
+    if (await connect.count().catch(() => 0)) { saw = true; if (await connect.isEnabled().catch(() => false)) { enabled = true; break; } }
+    await sleep(300);
+  } while (Date.now() < cd);
+  if (!saw) { console.error('   ✗ Connect button not found'); await dumpCandidates(page, 'connect-miss'); return false; }
+  if (!enabled) { console.error(`   ✗ Connect stayed disabled — the form is incomplete/invalid. Filled: ${JSON.stringify(filled)}`); return false; }
+
+  console.log('   · clicking Connect, waiting for the session tab…');
+  const [sessionPage] = await Promise.all([
+    context.waitForEvent('page', { timeout: 60000 }).catch(() => null),
+    connect.click(),
+  ]);
+  if (!sessionPage) { console.warn('   ⚠ no new session tab opened after Connect'); return false; }
+  await sessionPage.bringToFront().catch(() => {});
+  await sessionPage.waitForLoadState('domcontentloaded').catch(() => {});
+  console.log(`   ✅ connected — session tab opened: ${sessionPage.url() || '(loading)'}`);
+  return sessionPage;
+}
+
 (async () => {
   const browser = await chromium.launch({ headless: false, args: ['--start-maximized'] });
   const context = await browser.newContext({ viewport: null });
@@ -312,10 +492,20 @@ async function waitForSuccess(page, phrase, timeout = 30000) {
     const phrase = cfg.successText || cfg.successSelector || 'accounts view';
     console.log(`\n⏳ waiting for the Account view (body contains ${JSON.stringify(phrase)})…`);
     const reached = await waitForSuccess(page, phrase, cfg.successTimeoutMs || 30000);
-    console.log(reached ? '\n✅ Account view reached — the flow works.' : '\n⚠ Did not detect the Account view within the timeout.');
+    console.log(reached ? '\n✅ Account view reached — login flow works.' : '\n⚠ Did not detect the Account view within the timeout.');
     if (!reached) await dumpCandidates(page, 'after-submit');
     await page.screenshot({ path: path.join(OUT_DIR, 'login-probe-final.png'), fullPage: true }).catch(() => {});
     console.log(`   📸 ${path.join(OUT_DIR, 'login-probe-final.png')}`);
+  }
+
+  // ── Ad-Hoc connection (if configured): open form → fill → Connect ─────────
+  if (ok && cfg.adhoc) {
+    const sessionPage = await runAdhoc(page, context, cfg.adhoc);
+    await page.screenshot({ path: path.join(OUT_DIR, 'login-probe-adhoc.png'), fullPage: true }).catch(() => {});
+    if (sessionPage) {
+      await sessionPage.screenshot({ path: path.join(OUT_DIR, 'login-probe-session.png') }).catch(() => {});
+      console.log(`   📸 session screenshot → ${path.join(OUT_DIR, 'login-probe-session.png')}`);
+    }
   }
 
   console.log('\nBrowser left open — inspect, then press Ctrl+C to close.');

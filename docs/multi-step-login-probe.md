@@ -176,7 +176,45 @@ If you'd rather it hold for an explicit keypress instead, use a `pause` step:
   # expect: "text on the next page"   # optional: auto-continue when it appears
 ```
 
-## 5. Running it
+## 5. Ad-Hoc connection (optional)
+
+Add an `adhoc:` block and, once the login steps reach the Account view, the
+script continues into the vault's **Ad-Hoc connection** flow — the minimal
+logic (open button → form → fill → Connect) ported from `sendcmd`
+(`findClickable` / `fillField` / `setDropdown`), copied verbatim so it behaves
+the same. **`sendcmd` itself is not modified** — this is an independent copy.
+
+```yaml
+adhoc:
+  button:
+    testIds: ["accPAdHocConnectionBtn"]   # data-testid tried first
+    text: "ad[-\\s]?hoc\\s*connect"        # else match by name/text (regex)
+  formProbe: 'input[formcontrolname="inpAddress" i]'   # frame that hosts the form
+  formWait:  'input[formcontrolname="inpAddress" i]'
+  fields:
+    - { kind: dropdown, label: Platform, fc: ddlPolicy,               value: "PSM-SecureConnect" }
+    - { kind: dropdown, label: Client,   fc: ddlConnectionComponents, value: "SSH" }
+    - { kind: input, label: Address,  selector: 'input[formcontrolname="inpAddress" i]',  value: "10.0.0.10" }
+    - { kind: input, label: Username, selector: 'input[formcontrolname="inpUsername" i]', value: "CORP\\you" }
+    - { kind: input, label: Password, selector: 'input[formcontrolname="inpPassword" i]', value: "…", optional: true, secret: true }
+  connect:
+    text: "^\\s*connect\\s*$"
+    primarySelector: "button.ui-button-primary"
+```
+
+It runs four steps, logging each: **1** click the Ad-Hoc button (by test-id or
+name, across all frames; falls back to clicking the `accountsNavText` nav first),
+**2** wait for the form frame to open, **3** fill inputs and dropdowns from
+`fields`, **4** wait for **Connect** to become enabled, click it, and capture
+the **session tab** that opens (its screenshot is saved to
+`login-probe-session.png`). A missing button/field dumps the page's candidates,
+same as the login steps. Remove the `adhoc:` block to stop at login.
+
+> This connects (opens the remote session tab). Driving the session *inside*
+> that tab — the Guacamole canvas, host-key, password, `kinit` — is a much
+> larger surface that lives in `sendcmd`; it is out of scope for this probe.
+
+## 6. Running it
 
 From inside `scripts/login-probe/` (copy the example to your own config first):
 
@@ -193,7 +231,7 @@ The browser is left open at the end so you can inspect the result; press
 `Ctrl+C` to close it. Screenshots and candidate-field JSON dumps are written to
 the current directory (override with `PROBE_OUT=/some/dir`).
 
-## 6. Notes
+## 7. Notes
 
 - **Iframes / dynamic forms:** handled — every step searches all frames and
   polls up to its timeout, the same way robust portal automations do.
