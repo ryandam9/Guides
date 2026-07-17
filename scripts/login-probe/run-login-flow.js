@@ -395,6 +395,26 @@ async function dumpFormControls(formFrame, tag) {
   console.log(`   📄 ${file}`);
 }
 
+// Optional keyboard steps that run AFTER Connect — e.g. dismiss a host-key or
+// connection dialog on the session tab. Each entry: { waitMs (default 5000),
+// keys (["Enter"] / ["Tab","Enter"] or a "Tab Enter" string), keyDelayMs }. An
+// absent/empty list runs nothing, so each step is opt-in via the config.
+async function runPostConnect(targetPage, steps) {
+  if (!Array.isArray(steps) || !steps.length) return;
+  console.log('▶ 5. post-Connect keyboard steps…');
+  for (const [i, st] of steps.entries()) {
+    const wait = st.waitMs != null ? st.waitMs : 5000;
+    if (wait) { console.log(`   ⏱ step ${i + 1}: waiting ${wait}ms…`); await targetPage.waitForTimeout(wait); }
+    const keys = Array.isArray(st.keys) ? st.keys : String(st.keys || '').split(/[\s,]+/).filter(Boolean);
+    for (const k of keys) {
+      await targetPage.keyboard.press(k).catch((e) => console.warn(`   [warn] press ${k}: ${e.message}`));
+      console.log(`   ⌨ ${k}`);
+      await targetPage.waitForTimeout(st.keyDelayMs || 150);
+    }
+    console.log(`   ✓ post-Connect step ${i + 1}: [${keys.join(', ')}]`);
+  }
+}
+
 // The Ad-Hoc connect flow: open the form, fill it, click Connect, capture the
 // session tab. `ad` is the config's `adhoc:` block. Returns the new session
 // Page on success, or false.
@@ -487,11 +507,18 @@ async function runAdhoc(page, context, ad) {
     context.waitForEvent('page', { timeout: 60000 }).catch(() => null),
     connect.click(),
   ]);
-  if (!sessionPage) { console.warn('   ⚠ no new session tab opened after Connect'); return false; }
-  await sessionPage.bringToFront().catch(() => {});
-  await sessionPage.waitForLoadState('domcontentloaded').catch(() => {});
-  console.log(`   ✅ connected — session tab opened: ${sessionPage.url() || '(loading)'}`);
-  return sessionPage;
+  if (sessionPage) {
+    await sessionPage.bringToFront().catch(() => {});
+    await sessionPage.waitForLoadState('domcontentloaded').catch(() => {});
+    console.log(`   ✅ connected — session tab opened: ${sessionPage.url() || '(loading)'}`);
+  } else {
+    console.warn('   ⚠ no new session tab opened after Connect');
+  }
+
+  // 5. Optional, config-driven keyboard steps after Connect. They run on the
+  // session tab if one opened, else the main page. Absent → nothing happens.
+  await runPostConnect(sessionPage || page, ad.postConnect);
+  return sessionPage || false;
 }
 
 (async () => {
