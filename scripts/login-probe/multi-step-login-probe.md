@@ -223,6 +223,9 @@ adhoc:
   connect:
     text: "^\\s*connect\\s*$"
     primarySelector: "button.ui-button-primary"
+  postConnect:                         # optional keyboard steps AFTER Connect
+    - { waitMs: 5000, keys: ["Enter"] }
+    - { waitMs: 5000, keys: ["Tab", "Enter"] }
 ```
 
 It runs four steps, logging each: **1** click the Ad-Hoc button (by test-id or
@@ -232,6 +235,23 @@ name, across all frames; falls back to clicking the `accountsNavText` nav first)
 the **session tab** that opens (its screenshot is saved to
 `login-probe-session.png`). A missing button/field dumps the page's candidates,
 same as the login steps. Remove the `adhoc:` block to stop at login.
+
+### Steps after Connect (optional)
+
+Some portals need a keypress or two on the **session tab** once it opens — to
+dismiss a host-key prompt or confirm a connection dialog. Add a `postConnect:`
+list; each entry waits `waitMs` (default `5000`) then presses `keys` in order,
+on the session tab (or the main page if no tab opened):
+
+```yaml
+  postConnect:
+    - { waitMs: 5000, keys: ["Enter"] }          # wait 5s, then Enter
+    - { waitMs: 5000, keys: ["Tab", "Enter"] }   # wait 5s, then Tab, then Enter
+```
+
+Each entry is opt-in: include only the steps your portal needs, and omit the
+`postConnect` block entirely to do nothing after Connect. `keys` accepts an array
+(`["Tab","Enter"]`) or a string (`"Tab Enter"`); tune the pace with `keyDelayMs`.
 
 ### Discovering an extra field
 

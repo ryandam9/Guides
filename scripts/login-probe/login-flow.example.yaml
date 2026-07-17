@@ -159,3 +159,11 @@ adhoc:
   connect:
     text: "^\\s*connect\\s*$"
     primarySelector: "button.ui-button-primary"
+
+  # Optional keyboard steps AFTER Connect, run on the session tab that opens
+  # (e.g. to dismiss a host-key / connection dialog). Each entry waits `waitMs`
+  # (default 5000) then presses `keys` in order. These may or may not be needed —
+  # keep only the steps your portal requires, or omit the whole block to do nothing.
+  postConnect:
+    - { waitMs: 5000, keys: ["Enter"] }          # wait 5s, then press Enter
+    - { waitMs: 5000, keys: ["Tab", "Enter"] }   # wait 5s, then Tab, then Enter
