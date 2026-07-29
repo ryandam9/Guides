@@ -69,8 +69,8 @@ nano file1 file2 file3     # open multiple buffers (M-< / M-> to switch)
 | `^Y` / `^V` | Page up / page down (PgUp / PgDn) |
 | `M-\` (or `^Home`) | First line of file |
 | `M-/` (or `^End`) | Last line of file |
-| `^→` / `M-F` (older: `^Space`) | Forward one word |
-| `^←` / `M-B` (older: `M-Space`) | Back one word |
+| `^→` (Ctrl+Right) or `^Space` | Forward one word |
+| `^←` (Ctrl+Left) or `M-Space` | Back one word |
 | `^_` or `M-G` | **Go to line** (and optionally column: `25,10`) |
 | `M-(` / `M-)` (or `M-9` / `M-0`) | Previous / next paragraph |
 | `M-]` | Jump to matching bracket `(){}[]` |
@@ -89,13 +89,17 @@ nano file1 file2 file3     # open multiple buffers (M-< / M-> to switch)
 | `^U` | Paste |
 | `^D` | Delete character under cursor |
 | `Backspace` / `^H` | Delete character before cursor |
-| `M-Del` | Delete the current line entirely (no cut buffer) |
-| `^W` then `^X` (older) / `M-Del word` | Word deletion varies by version — see `^G` |
+| `M-Del` | Delete (zap) the current line entirely, without touching the cut buffer |
+| `M-Backspace` | Delete backward from cursor to start of word |
+| `^Del` | Delete forward from cursor to next word start |
 | `M-U` | **Undo** |
 | `M-E` | **Redo** |
 | `^J` | Justify (re-wrap) the current paragraph |
 | `M-J` | Justify the entire file |
-| `^T` | Spell check (or run linter/formatter if configured) |
+| `^T` | Execute a function/command (older nano: spell check directly) |
+| `F12` | Spell check, if available |
+| `M-B` | Invoke the **linter**, if configured (NOT back-a-word — that's Ctrl+Left!) |
+| `M-F` | Invoke the formatter, if configured |
 | `M-3` (or `M-#`) | Comment / uncomment current line or marked region |
 | `Tab` / `Shift-Tab` on a marked region | Indent / unindent the region |
 | `^]` | Complete the word being typed (from words in the buffer) |
