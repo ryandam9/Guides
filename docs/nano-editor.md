@@ -271,6 +271,22 @@ bind ^X cut all               # Ctrl+X cuts  (loses default exit binding!)
 > Careful when rebinding `^X`/`^C` — you're overriding nano's exit/position
 > keys. Keep `^Q → exit` bound if you take `^X` for cut.
 
+**Emacs-style word movement (great on macOS):** macOS intercepts nano's default
+word-movement keys before they reach the terminal — `^Space` is the
+input-source switcher and `^←`/`^→` are Mission Control's Space-switching
+shortcuts. Rebind `M-F`/`M-B` (which by default invoke a formatter/linter you
+are probably not using) to move by words instead:
+
+```nanorc
+bind M-F nextword main        # Option+F → forward one word
+bind M-B prevword main        # Option+B → back one word
+```
+
+(Requires the terminal to send Option as Meta — in Terminal.app / iTerm2 enable
+"Use Option as Meta/Esc+". Alternatively, free the originals in System
+Settings → Keyboard → Keyboard Shortcuts, or use nano's built-in fallback:
+`Esc` `Esc` `Space` = `^Space`.)
+
 List all current bindings from inside nano: `^G` (help shows the active keymap).
 
 ---
