@@ -20,6 +20,8 @@ output is the value*.
 | `zookeeper.znode.parent` | `hbase-site.xml` | `/hbase` |
 | HBase Kerberos principal | `hbase-site.xml` (secured clusters only) | `hbase/_HOST@EC2.INTERNAL` |
 | Thrift URL (`thrift_url`) | master host + port 9090 (`hbase-thrift` daemon) | `http://ip-10-0-1-23.ec2.internal:9090` |
+| NameNode (`nameNode=`) | `hdfs getconf -confKey fs.defaultFS` | `hdfs://ip-10-0-1-23.ec2.internal:8020` |
+| ResourceManager (`jobTracker=`) | `yarn-site.xml` host + port `8032` | `ip-10-0-1-23.ec2.internal:8032` |
 
 Everything below works from the **master node or any edge node** that has the
 client configs (`/etc/hbase/conf`, `/etc/hadoop/conf`) — no login to the master
@@ -441,7 +443,110 @@ transport, and clients must match it:
 
 ---
 
-## 6. Putting it together — a client connection block
+## 6. NameNode and ResourceManager addresses
+
+Both daemons run on the EMR master node. The standard EMR ports:
+
+| Daemon | RPC (clients/jobs) | Web UI |
+|---|---|---|
+| HDFS NameNode | `8020` | `9870` |
+| YARN ResourceManager | `8032` | `8088` |
+
+### 6a. NameNode
+
+```sh
+hdfs getconf -confKey fs.defaultFS
+```
+
+```
+hdfs://ip-10-0-1-23.ec2.internal:8020
+        └──────────┬────────────┘ └┬─┘
+                   │               └── NameNode RPC port
+                   └── NameNode host (= EMR master)
+```
+
+The whole string is what jobs use (e.g. `nameNode=` in an Oozie
+`job.properties`). For the web UI address:
+
+```sh
+hdfs getconf -confKey dfs.namenode.http-address
+```
+
+```
+ip-10-0-1-23.ec2.internal:9870        ← NameNode UI → http://ip-10-0-1-23.ec2.internal:9870
+```
+
+> If this prints `0.0.0.0:9870`, the daemon listens on all interfaces — the
+> host to use is still the master host from section 2; only take the **port**
+> from this output.
+
+Verify it's alive and which state it's in:
+
+```sh
+hdfs dfsadmin -report | head -8
+```
+
+```
+Configured Capacity: 3298534883328 (3.00 TB)
+Present Capacity: 3200000000000
+DFS Remaining: 3100000000000            ← numbers = NameNode is answering
+...
+Live datanodes (3):                     ← your core nodes are registered
+```
+
+### 6b. ResourceManager
+
+```sh
+grep -A2 'yarn.resourcemanager.hostname' /etc/hadoop/conf/yarn-site.xml
+```
+
+```xml
+  <property>
+    <name>yarn.resourcemanager.hostname</name>
+    <value>ip-10-0-1-23.ec2.internal</value>     ← RM host (= EMR master)
+  </property>
+```
+
+Derive the addresses from it — RPC is `<host>:8032` (this is the `jobTracker=`
+value in an Oozie `job.properties`), web UI is `http://<host>:8088`. If a full
+address is configured explicitly, it wins — check:
+
+```sh
+grep -A2 'yarn.resourcemanager.address' /etc/hadoop/conf/yarn-site.xml
+```
+
+```xml
+    <value>ip-10-0-1-23.ec2.internal:8032</value>   ← host:port, use as-is
+```
+
+Verify the RM is answering (works from any node):
+
+```sh
+yarn node -list 2>/dev/null
+```
+
+```
+Total Nodes:3                                            ← RM answered
+         Node-Id             Node-State  Node-Http-Address  Number-of-Running-Containers
+ip-10-0-2-11.ec2.internal:8041  RUNNING  ip-10-0-2-11.ec2.internal:8042  4
+ip-10-0-2-12.ec2.internal:8041  RUNNING  ...              ← core/task nodes
+```
+
+Or hit the REST API — one line of JSON, no SSH tunnel needed from inside the
+VPC:
+
+```sh
+curl -s http://ip-10-0-1-23.ec2.internal:8088/ws/v1/cluster/info
+```
+
+```json
+{"clusterInfo":{"state":"STARTED","haState":"ACTIVE",...}}
+                         └── STARTED + ACTIVE = healthy RM
+```
+
+---
+
+## 7. Putting it together — a client connection block
 
 With the values identified above, a typical client config (Java properties /
 Spark / Phoenix / NiFi etc.) looks like:
@@ -465,7 +570,7 @@ Three rules of thumb:
 
 ---
 
-## 7. One-shot summary script
+## 8. One-shot summary script
 
 Run on the master or an edge node — prints all values, already extracted:
 
@@ -479,6 +584,8 @@ echo "HBase principal : $(xmllint --xpath "//property[name='hbase.master.kerbero
 _m=$(hdfs getconf -confKey fs.defaultFS 2>/dev/null | sed -E 's#hdfs://([^:/]+).*#\1#')
 _tp=$(xmllint --xpath "//property[name='hbase.regionserver.thrift.port']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo 9090)
 echo "Thrift URL      : http://${_m}:${_tp}"
+echo "NameNode        : $(hdfs getconf -confKey fs.defaultFS 2>/dev/null)"
+echo "ResourceManager : $(xmllint --xpath "//property[name='yarn.resourcemanager.hostname']/value/text()" /etc/hadoop/conf/yarn-site.xml 2>/dev/null):8032"
 ```
 
 Sample run:
@@ -491,11 +598,13 @@ znode parent    : /hbase
 HBase master    : ip-10-0-1-23.ec2.internal:16000
 HBase principal : hbase/_HOST@EC2.INTERNAL
 Thrift URL      : http://ip-10-0-1-23.ec2.internal:9090
+NameNode        : hdfs://ip-10-0-1-23.ec2.internal:8020
+ResourceManager : ip-10-0-1-23.ec2.internal:8032
 ```
 
 ---
 
-## 8. No login to the master? Use an edge node
+## 9. No login to the master? Use an edge node
 
 Every command above except `systemctl`/`hostname -f`/`job-flow.json` works
 from an edge node — the client configs there point at the master by
