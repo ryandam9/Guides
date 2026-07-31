@@ -604,11 +604,59 @@ ResourceManager : ip-10-0-1-23.ec2.internal:8032
 
 ---
 
-## 9. No login to the master? Use an edge node
+## 9. No login to the master? Everything from a gateway/edge node
 
-Every command above except `systemctl`/`hostname -f`/`job-flow.json` works
-from an edge node — the client configs there point at the master by
-definition. If you need an actual shell on the master and direct SSH fails:
+You do NOT need a shell on the master for any of the values in this guide.
+A gateway node has copies of the client configs (`/etc/hbase/conf`,
+`/etc/hadoop/conf`) that point at the master by definition, and the services
+answer over the network. Here is every value with its **gateway-only** command:
+
+| Value | Gateway-node command | Section |
+|---|---|---|
+| ZK quorum / port / znode | `grep -A2 'hbase.zookeeper' /etc/hbase/conf/hbase-site.xml` | 1a |
+| ZK alive? | `echo ruok \| nc <quorum-host> 2181` → `imok` | 1c |
+| EMR master host | `hdfs getconf -confKey fs.defaultFS` | 2a |
+| HBase (HMaster) host | `echo 'status "simple"' \| hbase shell -n` (connects via ZK) | 3a |
+| Kerberos principal | `grep -A2 'kerberos.principal' /etc/hbase/conf/hbase-site.xml` | 4a |
+| Kerberos realm | `grep default_realm /etc/krb5.conf` | 4b |
+| Thrift port config | `grep -A2 'thrift' /etc/hbase/conf/hbase-site.xml` | 5b |
+| Thrift alive? | `nc -zv <master-host> 9090` and `curl -s http://<master-host>:9095 \| head` | below |
+| NameNode | `hdfs getconf -confKey fs.defaultFS` | 6a |
+| NameNode alive? | `hdfs dfsadmin -report \| head` | 6a |
+| ResourceManager | `grep -A2 'resourcemanager.hostname' /etc/hadoop/conf/yarn-site.xml` | 6b |
+| RM alive? | `yarn node -list` or `curl -s http://<master-host>:8088/ws/v1/cluster/info` | 6b |
+
+The **one-shot script in section 8 also runs unchanged on a gateway node** —
+every command in it is client-side.
+
+**Remote substitutes for the three master-only steps:**
+
+- `systemctl status hbase-thrift` (5a) → probe the ports from the gateway
+  instead; a listener answering IS the daemon running:
+  ```sh
+  nc -zv ip-10-0-1-23.ec2.internal 9090
+  # Connection to ip-10-0-1-23.ec2.internal 9090 port [tcp/*] succeeded!   ← running
+  curl -s http://ip-10-0-1-23.ec2.internal:9095 | head -3                  # Thrift UI HTML
+  ```
+- `sudo klist -kt /etc/hbase.keytab` (4c) → not needed: the principal from
+  `hbase-site.xml` (4a) is the same value; the keytab was only a cross-check.
+- `hostname -f` / `job-flow.json` (2b) → use `hdfs getconf -confKey
+  fs.defaultFS` (2a) or the AWS CLI (2c); `job-flow.json` only exists on
+  EMR-managed nodes.
+
+**Two gateway prerequisites to check if commands fail:**
+
+1. The configs actually exist: `ls /etc/hbase/conf/hbase-site.xml
+   /etc/hadoop/conf/yarn-site.xml`. If the gateway doesn't have them, copy
+   them from another client node, or pull the effective values with the AWS
+   CLI (2c) — `aws emr describe-cluster` also lists configuration
+   classifications under `Cluster.Configurations`.
+2. On a Kerberized cluster, get a ticket first (`kinit your-user@REALM`) —
+   otherwise `hbase shell`, `hdfs`, and `yarn` commands fail with
+   `GSSException: No valid credentials provided`, which looks like a
+   connectivity problem but isn't.
+
+If you ever do need an actual shell on the master and direct SSH fails:
 
 ```sh
 # Jump through the edge node (intra-VPC SSH is usually allowed):
