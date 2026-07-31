@@ -19,6 +19,7 @@ output is the value*.
 | HBase HMaster host | `hbase shell` → `status` / HBase UI `:16010` | same as master node |
 | `zookeeper.znode.parent` | `hbase-site.xml` | `/hbase` |
 | HBase Kerberos principal | `hbase-site.xml` (secured clusters only) | `hbase/_HOST@EC2.INTERNAL` |
+| Thrift URL (`thrift_url`) | master host + port 9090 (`hbase-thrift` daemon) | `http://ip-10-0-1-23.ec2.internal:9090` |
 
 Everything below works from the **master node or any edge node** that has the
 client configs (`/etc/hbase/conf`, `/etc/hadoop/conf`) — no login to the master
@@ -359,7 +360,88 @@ Valid starting     Expires            Service principal
 
 ---
 
-## 5. Putting it together — a client connection block
+## 5. HBase Thrift server URL (`thrift_url`)
+
+Some clients (Hue, HappyBase/Python, PHP/Ruby libs) don't speak the native
+HBase RPC — they go through the **HBase Thrift server**, which EMR runs on the
+master node. Its URL is:
+
+```
+http://<master-private-dns>:9090        e.g. http://ip-10-0-1-23.ec2.internal:9090
+       └─────────┬────────┘ └┬─┘
+                 │            └── Thrift port — default 9090
+                 └── the EMR master host from section 2
+```
+
+### 5a. Confirm the Thrift server is running (master node)
+
+```sh
+sudo systemctl status hbase-thrift
+```
+
+```
+● hbase-thrift.service - HBase Thrift daemon
+     Active: active (running) since Thu 2026-07-31 01:10:14 UTC; 5h ago
+             └── this is what you're looking for
+```
+
+If the unit doesn't exist or is inactive, the Thrift server isn't running on
+this cluster — start it (`sudo systemctl start hbase-thrift`) or provision it
+via the cluster config.
+
+### 5b. Confirm the port
+
+Defaults are **9090** (Thrift service) and **9095** (its info/status web UI).
+Check for overrides first — if these properties are absent from the file, the
+defaults apply:
+
+```sh
+grep -B1 -A2 'thrift' /etc/hbase/conf/hbase-site.xml
+```
+
+```xml
+  <property>
+    <name>hbase.regionserver.thrift.port</name>
+    <value>9090</value>                      ← Thrift port (only if overridden)
+  </property>
+  <property>
+    <name>hbase.regionserver.thrift.http</name>
+    <value>true</value>                      ← transport mode, see below
+  </property>
+```
+
+Then verify something is actually listening:
+
+```sh
+sudo ss -tlnp | grep -E ':(9090|9095)\b'
+```
+
+```
+LISTEN 0  50  *:9090  *:*  users:(("java",pid=4567,fd=512))   ← Thrift service
+LISTEN 0  50  *:9095  *:*  users:(("java",pid=4567,fd=520))   ← Thrift web UI
+```
+
+Quick sanity check from any node: `curl -s http://<master>:9095 | head` should
+return the UI's HTML (the 9095 UI answering proves the daemon is up).
+
+### 5c. Which form of `thrift_url` to use
+
+The `hbase.regionserver.thrift.http` property (section 5b) decides the
+transport, and clients must match it:
+
+| `thrift.http` | Transport | What the client needs |
+|---|---|---|
+| absent / `false` | Binary Thrift socket | host + port pair: `ip-10-0-1-23.ec2.internal`, `9090` (HappyBase default) |
+| `true` | Thrift-over-HTTP | full URL: `http://ip-10-0-1-23.ec2.internal:9090` (Hue's `thrift_url`; Kerberized clusters typically use this + SPNEGO) |
+
+> Thrift protocol version matters too: `hbase-thrift` is the Thrift1 API
+> (HappyBase, Hue). The separate `hbase-thrift2` daemon speaks the newer
+> Thrift2 API — different, incompatible clients. On EMR you'll normally only
+> find `hbase-thrift`.
+
+---
+
+## 6. Putting it together — a client connection block
 
 With the values identified above, a typical client config (Java properties /
 Spark / Phoenix / NiFi etc.) looks like:
@@ -383,7 +465,7 @@ Three rules of thumb:
 
 ---
 
-## 6. One-shot summary script
+## 7. One-shot summary script
 
 Run on the master or an edge node — prints all values, already extracted:
 
@@ -394,6 +476,9 @@ echo "ZK client port  : $(xmllint --xpath "//property[name='hbase.zookeeper.prop
 echo "znode parent    : $(xmllint --xpath "//property[name='zookeeper.znode.parent']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo /hbase)"
 echo "HBase master    : $(echo 'status "simple"' | hbase shell -n 2>/dev/null | awk '/active master:/ {print $3}')"
 echo "HBase principal : $(xmllint --xpath "//property[name='hbase.master.kerberos.principal']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo '(not kerberized)')"
+_m=$(hdfs getconf -confKey fs.defaultFS 2>/dev/null | sed -E 's#hdfs://([^:/]+).*#\1#')
+_tp=$(xmllint --xpath "//property[name='hbase.regionserver.thrift.port']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo 9090)
+echo "Thrift URL      : http://${_m}:${_tp}"
 ```
 
 Sample run:
@@ -405,11 +490,12 @@ ZK client port  : 2181
 znode parent    : /hbase
 HBase master    : ip-10-0-1-23.ec2.internal:16000
 HBase principal : hbase/_HOST@EC2.INTERNAL
+Thrift URL      : http://ip-10-0-1-23.ec2.internal:9090
 ```
 
 ---
 
-## 7. No login to the master? Use an edge node
+## 8. No login to the master? Use an edge node
 
 Every command above except `systemctl`/`hostname -f`/`job-flow.json` works
 from an edge node — the client configs there point at the master by
