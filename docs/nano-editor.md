@@ -291,7 +291,82 @@ List all current bindings from inside nano: `^G` (help shows the active keymap).
 
 ---
 
-## 11. Handy command-line one-liners
+## 11. Themes & colors
+
+Nano theming has two layers: **syntax-highlighting schemes** (per-language
+`.nanorc` files) and **UI colors** (title bar, status bar, line numbers, …
+via `set ...color` options in `~/.nanorc`).
+
+### Ready-made theme collections
+
+| Project | What it is |
+|---|---|
+| `scopatz/nanorc` | The classic community collection — improved highlighting for ~40 languages |
+| `galenguyer/nano-syntax-highlighting` | Maintained fork of the above with more languages/fixes |
+| `dracula/nano` | Official Dracula port — the well-known purple/pink dark palette |
+| `catppuccin/nano` | Catppuccin pastel dark theme — soft, low-contrast |
+
+Install pattern is the same for all: put the `.nanorc` files somewhere and
+include them (order matters — later includes override earlier ones):
+
+```sh
+# scopatz one-liner:
+curl -fsSL https://raw.githubusercontent.com/scopatz/nanorc/master/install.sh | sh
+
+# manual (e.g. Dracula):
+git clone https://github.com/dracula/nano ~/.nano/dracula
+echo 'include "~/.nano/dracula/*.nanorc"' >> ~/.nanorc
+```
+
+### UI colors — nano's extended palette
+
+Modern nano (6+) understands far more than the basic eight colors:
+`pink, purple, mauve, lagoon, mint, lime, peach, orange, latte, rosy, beet,
+plum, sea, sky, slate, teal, sage, brown, ocher, sand, tawny, brick, crimson,
+grey` — plus `light`/`bright` prefixes and `bold`/`italic` attributes.
+Format is `set <element>color [attrs,]foreground[,background]`.
+
+```nanorc
+## "Ocean" — cool and calm
+set titlecolor    bold,white,sky
+set statuscolor   bold,white,sea
+set promptcolor   black,sky
+set numbercolor   slate
+set keycolor      teal
+set functioncolor sky
+set selectedcolor lightwhite,sea
+set stripecolor   ,slate          # column-overflow marker
+set spotlightcolor black,peach    # search-match highlight
+set minicolor     white,sea
+```
+
+```nanorc
+## "Warm" — earthy, high contrast
+set titlecolor    bold,latte,brick
+set statuscolor   bold,latte,brown
+set numbercolor   sand
+set keycolor      peach
+set functioncolor ocher
+set selectedcolor lightwhite,tawny
+set spotlightcolor black,lime
+```
+
+Paste one block into `~/.nanorc` — every new nano launch picks it up.
+
+### Caveats
+
+1. Nano colors ride on your **terminal's palette** — the same theme looks
+   different per terminal emulator, and a dark-terminal theme can be
+   unreadable on a light background. If it looks off, suspect the terminal
+   profile, not the nanorc.
+2. **Old nano (2.9.x, e.g. Amazon Linux/EMR nodes)** doesn't know the extended
+   color names or several `set ...color` options and will error at startup.
+   Keep fancy themes in your local `~/.nanorc`; on servers stick to basic
+   colors only: `set titlecolor bold,white,blue`.
+
+---
+
+## 12. Handy command-line one-liners
 
 ```sh
 nano ~/.nanorc                          # edit your own config
@@ -306,7 +381,7 @@ nano -                                   # edit from stdin (pipe into nano)
 
 ---
 
-## 12. Quick reference card
+## 13. Quick reference card
 
 ```
 FILE                          EDIT                        SEARCH
@@ -327,7 +402,7 @@ M-\ / M-/ file top/bottom     Tab/S-Tab indent region     Shift+arrows also work
 
 ---
 
-## 13. Version notes
+## 14. Version notes
 
 Shortcut sets shifted over the years (notably at nano 2.x → 4.x/5.x). If a
 shortcut here doesn't work:
