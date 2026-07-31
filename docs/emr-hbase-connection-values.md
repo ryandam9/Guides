@@ -18,6 +18,7 @@ output is the value*.
 | EMR master host | `hdfs getconf -confKey fs.defaultFS` or `job-flow.json` | `ip-10-0-1-23.ec2.internal` |
 | HBase HMaster host | `hbase shell` → `status` / HBase UI `:16010` | same as master node |
 | `zookeeper.znode.parent` | `hbase-site.xml` | `/hbase` |
+| HBase Kerberos principal | `hbase-site.xml` (secured clusters only) | `hbase/_HOST@EC2.INTERNAL` |
 
 Everything below works from the **master node or any edge node** that has the
 client configs (`/etc/hbase/conf`, `/etc/hadoop/conf`) — no login to the master
@@ -254,7 +255,111 @@ active master, backup masters, and the RegionServer list.
 
 ---
 
-## 4. Putting it together — a client connection block
+## 4. HBase Kerberos principal (secured clusters only)
+
+If the cluster uses Kerberos (an EMR **security configuration** with Kerberos
+enabled), clients also need the HBase service principals. If it doesn't, the
+properties below simply won't exist in the file — that itself is your answer
+(no principal needed).
+
+### 4a. From `hbase-site.xml`
+
+```sh
+grep -B1 -A2 'kerberos.principal' /etc/hbase/conf/hbase-site.xml
+```
+
+Sample output — **the value is the `<value>` line under each property name**:
+
+```xml
+  <property>
+    <name>hbase.master.kerberos.principal</name>
+    <value>hbase/_HOST@EC2.INTERNAL</value>        ← HMaster principal
+  </property>
+  <property>
+    <name>hbase.regionserver.kerberos.principal</name>
+    <value>hbase/_HOST@EC2.INTERNAL</value>        ← RegionServer principal
+  </property>
+```
+
+How to read `hbase/_HOST@EC2.INTERNAL`:
+
+```
+hbase   /   _HOST   @   EC2.INTERNAL
+└─┬─┘       └─┬─┘       └─────┬────┘
+service    placeholder      realm
+user       replaced by each
+           server's own FQDN
+```
+
+- **Keep `_HOST` literal in client configs** — the client substitutes the
+  actual server hostname at connection time. Do NOT replace it by hand.
+- The **realm** (after `@`) varies: EMR's cluster-dedicated KDC typically uses
+  a realm like `EC2.INTERNAL`; a corporate/cross-realm setup shows your
+  AD/MIT realm (e.g. `CORP.EXAMPLE.COM`).
+
+Bare-value one-liners, same as before:
+
+```sh
+xmllint --xpath "//property[name='hbase.master.kerberos.principal']/value/text()" \
+    /etc/hbase/conf/hbase-site.xml; echo
+hbase org.apache.hadoop.hbase.util.HBaseConfTool hbase.master.kerberos.principal
+```
+
+### 4b. Confirm the realm from `krb5.conf`
+
+```sh
+grep default_realm /etc/krb5.conf
+```
+
+```
+ default_realm = EC2.INTERNAL          ← the realm part of every principal
+```
+
+### 4c. From the keytab (on the master node, needs sudo)
+
+The service keytab lists the exact principals it holds — no `_HOST`
+placeholder, fully resolved:
+
+```sh
+sudo klist -kt /etc/hbase.keytab
+```
+
+```
+Keytab name: FILE:/etc/hbase.keytab
+KVNO Timestamp           Principal
+---- ------------------- ------------------------------------------------------
+   2 07/31/2026 01:10:11 hbase/ip-10-0-1-23.ec2.internal@EC2.INTERNAL   ← real
+   2 07/31/2026 01:10:11 hbase/ip-10-0-1-23.ec2.internal@EC2.INTERNAL      principal,
+   ...                                                                      repeated once
+                                                                            per encryption type
+```
+
+> The same principal appearing on multiple lines is normal — one entry per
+> encryption type (and per KVNO after rekeys). It's still one principal.
+
+### 4d. What a client needs on a Kerberized cluster
+
+```properties
+hbase.security.authentication=kerberos
+hbase.master.kerberos.principal=hbase/_HOST@EC2.INTERNAL
+hbase.regionserver.kerberos.principal=hbase/_HOST@EC2.INTERNAL
+```
+
+...and a valid ticket before connecting (`kinit your-user@REALM`, or
+`kinit -kt your.keytab principal` for services). Check what you currently
+hold with `klist`:
+
+```
+Ticket cache: FILE:/tmp/krb5cc_1000
+Default principal: hadoop@EC2.INTERNAL     ← who YOU are authenticated as
+Valid starting     Expires            Service principal
+07/31/26 02:00:00  07/31/26 12:00:00  krbtgt/EC2.INTERNAL@EC2.INTERNAL
+                   └── if this is in the past, kinit again
+```
+
+---
+
+## 5. Putting it together — a client connection block
 
 With the values identified above, a typical client config (Java properties /
 Spark / Phoenix / NiFi etc.) looks like:
@@ -278,7 +383,7 @@ Three rules of thumb:
 
 ---
 
-## 5. One-shot summary script
+## 6. One-shot summary script
 
 Run on the master or an edge node — prints all values, already extracted:
 
@@ -288,6 +393,7 @@ echo "ZK quorum       : $(xmllint --xpath "//property[name='hbase.zookeeper.quor
 echo "ZK client port  : $(xmllint --xpath "//property[name='hbase.zookeeper.property.clientPort']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo 2181)"
 echo "znode parent    : $(xmllint --xpath "//property[name='zookeeper.znode.parent']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo /hbase)"
 echo "HBase master    : $(echo 'status "simple"' | hbase shell -n 2>/dev/null | awk '/active master:/ {print $3}')"
+echo "HBase principal : $(xmllint --xpath "//property[name='hbase.master.kerberos.principal']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo '(not kerberized)')"
 ```
 
 Sample run:
@@ -298,11 +404,12 @@ ZK quorum       : ip-10-0-1-23.ec2.internal
 ZK client port  : 2181
 znode parent    : /hbase
 HBase master    : ip-10-0-1-23.ec2.internal:16000
+HBase principal : hbase/_HOST@EC2.INTERNAL
 ```
 
 ---
 
-## 6. No login to the master? Use an edge node
+## 7. No login to the master? Use an edge node
 
 Every command above except `systemctl`/`hostname -f`/`job-flow.json` works
 from an edge node — the client configs there point at the master by
