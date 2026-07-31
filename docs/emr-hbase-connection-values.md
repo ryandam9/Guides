@@ -19,8 +19,7 @@ output is the value*.
 | HBase HMaster host | `hbase shell` → `status` / HBase UI `:16010` | same as master node |
 | `zookeeper.znode.parent` | `hbase-site.xml` | `/hbase` |
 | HBase Kerberos principal | `hbase-site.xml` (secured clusters only) | `hbase/_HOST@EC2.INTERNAL` |
-| Hive Metastore Thrift URI | `hive.metastore.uris` in `hive-site.xml` | `thrift://ip-10-0-1-23.ec2.internal:9083` |
-| HBase Thrift URL | master host + port 9090 (`hbase-thrift` daemon) | `http://ip-10-0-1-23.ec2.internal:9090` |
+| Hive Metastore Thrift URI (`thrift_url`) | `hive.metastore.uris` in `hive-site.xml` | `thrift://ip-10-0-1-23.ec2.internal:9083` |
 | NameNode (`nameNode=`) | `hdfs getconf -confKey fs.defaultFS` | `hdfs://ip-10-0-1-23.ec2.internal:8020` |
 | ResourceManager (`jobTracker=`) | `yarn-site.xml` host + port `8032` | `ip-10-0-1-23.ec2.internal:8032` |
 
@@ -363,24 +362,24 @@ Valid starting     Expires            Service principal
 
 ---
 
-## 5. Thrift URLs (`thrift_url`) — which service do you actually mean?
+## 5. Hive Metastore Thrift URI (`thrift_url`, port 9083)
 
-**Thrift is not an HBase-specific thing.** Apache Thrift is a general RPC
-framework, and several services on an EMR cluster expose a Thrift endpoint.
-When someone asks for "the thrift URL", identify the service by its **port**:
+The Hive Metastore is the table/schema catalog that Spark, Trino/Presto, and
+Hue talk to. It exposes a Thrift endpoint on port **9083** of the master node,
+and its URI is what most tools mean by `thrift_url`:
 
-| Service | Default port | URI form | Config key (file) |
-|---|---|---|---|
-| **Hive Metastore** | **9083** | `thrift://<master>:9083` | `hive.metastore.uris` (`hive-site.xml`) |
-| HiveServer2 (JDBC/beeline) | 10000 binary / 10001 HTTP | `jdbc:hive2://<master>:10000` | `hive.server2.thrift.port` (`hive-site.xml`) |
-| HBase Thrift server | 9090 (+ 9095 UI) | `http://<master>:9090` or host+port | `hbase.regionserver.thrift.port` (`hbase-site.xml`) |
+```
+thrift://ip-10-0-1-23.ec2.internal:9083
+          └──────────┬────────────┘ └┬─┘
+                     │               └── Hive Metastore port — default 9083
+                     └── the EMR master host from section 2
+```
 
-Rule of thumb: **port 9083 → Hive Metastore** (the table/schema catalog that
-Spark, Trino/Presto, and Hue talk to). **Port 9090 → HBase Thrift server**
-(a data-access gateway into HBase for non-Java clients). Same protocol
-framework, unrelated services.
+(Note: Apache Thrift is a general RPC framework, so other services expose
+Thrift ports too — if the port you were given is not 9083, it belongs to a
+different service, not the metastore.)
 
-### 5a. Hive Metastore Thrift URI (port 9083) — the most common `thrift_url`
+### 5a. From `hive-site.xml` (works on a gateway node)
 
 ```sh
 grep -A2 'hive.metastore.uris' /etc/hive/conf/hive-site.xml
@@ -393,13 +392,30 @@ grep -A2 'hive.metastore.uris' /etc/hive/conf/hive-site.xml
   </property>                                                   is your thrift_url
 ```
 
+Bare value, no XML noise:
+
+```sh
+xmllint --xpath "//property[name='hive.metastore.uris']/value/text()" \
+    /etc/hive/conf/hive-site.xml; echo
+```
+
 Use it as-is — e.g. `spark.hadoop.hive.metastore.uris`, Trino's
-`hive.metastore.uri`, Hue's metastore config. Verify it's listening (works
-from a gateway node):
+`hive.metastore.uri`, Hue's metastore config. A multi-metastore setup shows a
+comma-separated list of `thrift://` URIs — keep the whole list intact.
+
+### 5b. Verify it's listening (works from a gateway node)
 
 ```sh
 nc -zv ip-10-0-1-23.ec2.internal 9083
 # Connection to ip-10-0-1-23.ec2.internal 9083 port [tcp/*] succeeded!   ← alive
+```
+
+End-to-end check — actually query the metastore through Hive:
+
+```sh
+hive -e 'show databases;' 2>/dev/null
+# default
+# mydb          ← databases listing = metastore answered on 9083
 ```
 
 > **Glue Data Catalog caveat:** if the cluster uses AWS Glue as its
@@ -408,85 +424,6 @@ nc -zv ip-10-0-1-23.ec2.internal 9083
 > `AWSGlueDataCatalogHiveClientFactory` in `hive-site.xml`, and
 > `hive.metastore.uris` being absent or ignored. Clients then configure Glue,
 > not a Thrift URI.
-
-### The HBase Thrift server (port 9090)
-
-Some clients (Hue's HBase browser, HappyBase/Python, PHP/Ruby libs) don't
-speak the native HBase RPC — they go through the **HBase Thrift server**,
-which EMR runs on the master node. Its URL is:
-
-```
-http://<master-private-dns>:9090        e.g. http://ip-10-0-1-23.ec2.internal:9090
-       └─────────┬────────┘ └┬─┘
-                 │            └── Thrift port — default 9090
-                 └── the EMR master host from section 2
-```
-
-### 5b. Confirm the HBase Thrift server is running (master node)
-
-```sh
-sudo systemctl status hbase-thrift
-```
-
-```
-● hbase-thrift.service - HBase Thrift daemon
-     Active: active (running) since Thu 2026-07-31 01:10:14 UTC; 5h ago
-             └── this is what you're looking for
-```
-
-If the unit doesn't exist or is inactive, the Thrift server isn't running on
-this cluster — start it (`sudo systemctl start hbase-thrift`) or provision it
-via the cluster config.
-
-### 5c. Confirm the port
-
-Defaults are **9090** (Thrift service) and **9095** (its info/status web UI).
-Check for overrides first — if these properties are absent from the file, the
-defaults apply:
-
-```sh
-grep -B1 -A2 'thrift' /etc/hbase/conf/hbase-site.xml
-```
-
-```xml
-  <property>
-    <name>hbase.regionserver.thrift.port</name>
-    <value>9090</value>                      ← Thrift port (only if overridden)
-  </property>
-  <property>
-    <name>hbase.regionserver.thrift.http</name>
-    <value>true</value>                      ← transport mode, see below
-  </property>
-```
-
-Then verify something is actually listening:
-
-```sh
-sudo ss -tlnp | grep -E ':(9090|9095)\b'
-```
-
-```
-LISTEN 0  50  *:9090  *:*  users:(("java",pid=4567,fd=512))   ← Thrift service
-LISTEN 0  50  *:9095  *:*  users:(("java",pid=4567,fd=520))   ← Thrift web UI
-```
-
-Quick sanity check from any node: `curl -s http://<master>:9095 | head` should
-return the UI's HTML (the 9095 UI answering proves the daemon is up).
-
-### 5d. Which form of the HBase `thrift_url` to use
-
-The `hbase.regionserver.thrift.http` property (section 5c) decides the
-transport, and clients must match it:
-
-| `thrift.http` | Transport | What the client needs |
-|---|---|---|
-| absent / `false` | Binary Thrift socket | host + port pair: `ip-10-0-1-23.ec2.internal`, `9090` (HappyBase default) |
-| `true` | Thrift-over-HTTP | full URL: `http://ip-10-0-1-23.ec2.internal:9090` (Hue's `thrift_url`; Kerberized clusters typically use this + SPNEGO) |
-
-> Thrift protocol version matters too: `hbase-thrift` is the Thrift1 API
-> (HappyBase, Hue). The separate `hbase-thrift2` daemon speaks the newer
-> Thrift2 API — different, incompatible clients. On EMR you'll normally only
-> find `hbase-thrift`.
 
 ---
 
@@ -628,9 +565,6 @@ echo "ZK client port  : $(xmllint --xpath "//property[name='hbase.zookeeper.prop
 echo "znode parent    : $(xmllint --xpath "//property[name='zookeeper.znode.parent']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo /hbase)"
 echo "HBase master    : $(echo 'status "simple"' | hbase shell -n 2>/dev/null | awk '/active master:/ {print $3}')"
 echo "HBase principal : $(xmllint --xpath "//property[name='hbase.master.kerberos.principal']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo '(not kerberized)')"
-_m=$(hdfs getconf -confKey fs.defaultFS 2>/dev/null | sed -E 's#hdfs://([^:/]+).*#\1#')
-_tp=$(xmllint --xpath "//property[name='hbase.regionserver.thrift.port']/value/text()" /etc/hbase/conf/hbase-site.xml 2>/dev/null || echo 9090)
-echo "HBase Thrift    : http://${_m}:${_tp}"
 echo "Hive Metastore  : $(xmllint --xpath "//property[name='hive.metastore.uris']/value/text()" /etc/hive/conf/hive-site.xml 2>/dev/null || echo '(none — Glue catalog?)')"
 echo "NameNode        : $(hdfs getconf -confKey fs.defaultFS 2>/dev/null)"
 echo "ResourceManager : $(xmllint --xpath "//property[name='yarn.resourcemanager.hostname']/value/text()" /etc/hadoop/conf/yarn-site.xml 2>/dev/null):8032"
@@ -645,7 +579,6 @@ ZK client port  : 2181
 znode parent    : /hbase
 HBase master    : ip-10-0-1-23.ec2.internal:16000
 HBase principal : hbase/_HOST@EC2.INTERNAL
-HBase Thrift    : http://ip-10-0-1-23.ec2.internal:9090
 Hive Metastore  : thrift://ip-10-0-1-23.ec2.internal:9083
 NameNode        : hdfs://ip-10-0-1-23.ec2.internal:8020
 ResourceManager : ip-10-0-1-23.ec2.internal:8032
@@ -669,8 +602,7 @@ answer over the network. Here is every value with its **gateway-only** command:
 | Kerberos principal | `grep -A2 'kerberos.principal' /etc/hbase/conf/hbase-site.xml` | 4a |
 | Kerberos realm | `grep default_realm /etc/krb5.conf` | 4b |
 | Hive Metastore Thrift URI | `grep -A2 'hive.metastore.uris' /etc/hive/conf/hive-site.xml` | 5a |
-| HBase Thrift port config | `grep -A2 'thrift' /etc/hbase/conf/hbase-site.xml` | 5c |
-| HBase Thrift alive? | `nc -zv <master-host> 9090` and `curl -s http://<master-host>:9095 \| head` | below |
+| Metastore alive? | `nc -zv <master-host> 9083` or `hive -e 'show databases;'` | 5b |
 | NameNode | `hdfs getconf -confKey fs.defaultFS` | 6a |
 | NameNode alive? | `hdfs dfsadmin -report \| head` | 6a |
 | ResourceManager | `grep -A2 'resourcemanager.hostname' /etc/hadoop/conf/yarn-site.xml` | 6b |
@@ -679,15 +611,8 @@ answer over the network. Here is every value with its **gateway-only** command:
 The **one-shot script in section 8 also runs unchanged on a gateway node** —
 every command in it is client-side.
 
-**Remote substitutes for the three master-only steps:**
+**Remote substitutes for the master-only steps:**
 
-- `systemctl status hbase-thrift` (5a) → probe the ports from the gateway
-  instead; a listener answering IS the daemon running:
-  ```sh
-  nc -zv ip-10-0-1-23.ec2.internal 9090
-  # Connection to ip-10-0-1-23.ec2.internal 9090 port [tcp/*] succeeded!   ← running
-  curl -s http://ip-10-0-1-23.ec2.internal:9095 | head -3                  # Thrift UI HTML
-  ```
 - `sudo klist -kt /etc/hbase.keytab` (4c) → not needed: the principal from
   `hbase-site.xml` (4a) is the same value; the keytab was only a cross-check.
 - `hostname -f` / `job-flow.json` (2b) → use `hdfs getconf -confKey
