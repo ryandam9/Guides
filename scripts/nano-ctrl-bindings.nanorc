@@ -1,0 +1,92 @@
+# nano-ctrl-bindings.nanorc — a Meta-free nano keymap for browser terminals
+# =========================================================================
+#
+# PROBLEM
+#   In browser-based terminals (Apache Guacamole, cloud shells) on macOS,
+#   the Option key composes special characters instead of sending Meta, so
+#   every M-x shortcut in nano is unreachable. macOS also intercepts
+#   Ctrl+Space (input-source switcher) and Ctrl+arrows (Mission Control),
+#   which are nano's fallback word-movement keys.
+#
+# SOLUTION
+#   Rebind the important Meta functions onto Ctrl keys whose default
+#   actions are duplicated by other keys (arrows, PgUp/PgDn, Backspace) or
+#   are useless in a browser terminal (suspend). Everything not bound here
+#   still works via the Esc prefix: a single Esc = Meta (Esc U = M-U),
+#   a double Esc = Ctrl. Tested on GNU nano 7.2.
+#
+# INSTALL
+#   Append to your ~/.nanorc on the REMOTE (Linux) machine:
+#       cat nano-ctrl-bindings.nanorc >> ~/.nanorc
+#   or keep it as a separate file and include it:
+#       echo 'include "~/.nano/nano-ctrl-bindings.nanorc"' >> ~/.nanorc
+#   (For old nano 2.9.x — Amazon Linux 2 / EMR nodes — see the
+#   compatibility note at the bottom.)
+#
+# THE KEYMAP
+#   New key   Function                        Default key   What the Ctrl key did before (and why that's OK to lose)
+#   ^Z        undo                            M-U           suspend — pointless in a browser terminal
+#   ^Y        redo                            M-E           page up — PgUp key (Fn+Up on Mac) still does it
+#   ^B        back one word                   M-Space       back one char — Left arrow does it
+#   ^F        forward one word                ^Space        fwd one char — Right arrow does it
+#   ^P        scroll up (cursor stays)        M--           prev line — Up arrow does it
+#   ^N        scroll down (cursor stays)      M-+           next line — Down arrow does it
+#   ^C        copy line / marked region       M-6           cursor-position report — rarely needed
+#   ^H        delete word backward            M-Backspace   same as Backspace — the Backspace key itself
+#                                                           sends a different code (DEL) and keeps working
+#   ^J        jump to matching bracket        M-]           justify paragraph — rare when editing configs;
+#                                                           still available as Esc J (full justify: Esc Esc J)
+#   ^L        comment/uncomment line          M-3           refresh & center screen — cosmetic, rarely needed
+#   F7 / F8   previous / next file buffer     M-< / M->     nothing (F7/F8 are unbound) — zero cost;
+#                                                           works only if the browser passes F-keys through
+#
+# STILL AVAILABLE WITHOUT META (no rebinding needed — built in):
+#   Set mark (select)      ^6         (then move; Shift+arrows often work too)
+#   Cut / paste            ^K / ^U
+#   Search / next match    ^W  /  ^W then Enter
+#   Previous match         ^Q
+#   Replace                ^\
+#   Go to line             ^_         (in the prompt: ^Y = first line, ^V = last line)
+#   Indent / unindent      mark with ^6, then Tab / Shift+Tab
+#   Delete word forward    ^Del       (if the terminal sends it)
+#   Page down              ^V         (kept deliberately, since ^Y became redo)
+#
+# RARE META FUNCTIONS — use the Esc prefix (single Esc = Meta):
+#   Esc D = word count     Esc V = verbatim input     Esc : / Esc ; = macros
+#   Esc N = line numbers   Esc P = show whitespace    Esc S = soft wrap
+#   Tip: on macOS map Caps Lock -> Esc (System Settings > Keyboard >
+#   Modifier Keys) and the Esc prefix becomes painless.
+
+bind ^Z undo main
+bind ^Y redo main
+bind ^B prevword main
+bind ^F nextword main
+bind ^P scrollup main
+bind ^N scrolldown main
+bind ^C copy main
+bind ^H chopwordleft main
+bind ^J matchbracket main
+bind ^L comment main
+bind F7 prevbuf main
+bind F8 nextbuf main
+
+# ---------------------------------------------------------------------------
+# CAVEATS
+#
+# * ^H / Backspace: most terminals (Guacamole included) send DEL (0x7F) for
+#   the Backspace key, so binding ^H is safe. If your Backspace suddenly
+#   deletes whole words, your terminal sends ^H for Backspace — delete the
+#   "bind ^H chopwordleft main" line.
+#
+# * Page up: with ^Y taken by redo, page-up is the PgUp key only
+#   (Fn+Up arrow on a Mac laptop). Page-down still has both ^V and PgDn.
+#
+# * OLD NANO (2.9.x — Amazon Linux 2, EMR nodes): some function names
+#   differ or don't exist. Replace:
+#       copy          -> copytext
+#       chopwordleft  -> cutwordleft
+#       matchbracket  -> (not bindable; remove the ^J line)
+#   scrollup/scrolldown, comment, prevbuf/nextbuf, undo/redo work as-is.
+#   An unknown name makes nano print an error at startup and ignore that
+#   line — annoying but harmless.
+# ---------------------------------------------------------------------------

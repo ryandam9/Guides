@@ -287,6 +287,33 @@ bind M-B prevword main        # Option+B → back one word
 Settings → Keyboard → Keyboard Shortcuts, or use nano's built-in fallback:
 `Esc` `Esc` `Space` = `^Space`.)
 
+**Browser terminals (Guacamole, cloud shells) — no Meta key at all:** in a
+browser terminal on macOS, Option never reaches nano as Meta, so *every* `M-`
+shortcut is dead — the `M-F`/`M-B` rebinding above won't help either, and
+Ctrl is the only usable modifier. This repo ships a complete, tested Ctrl-only
+keymap: [`scripts/nano-ctrl-bindings.nanorc`](../scripts/nano-ctrl-bindings.nanorc).
+It moves the important Meta functions onto Ctrl keys whose defaults are
+duplicated by other keys (arrows, PgUp/PgDn) or useless in a browser
+(suspend):
+
+| New key | Function | Was | Displaced default (why it's OK) |
+|---|---|---|---|
+| `^Z` / `^Y` | undo / redo | `M-U` / `M-E` | suspend (useless in browser) / page-up (PgUp key remains) |
+| `^B` / `^F` | back / forward one **word** | `M-Space` / `^Space` | char movement (arrows remain) |
+| `^P` / `^N` | scroll up / down, cursor stays | `M--` / `M-+` | line movement (arrows remain) |
+| `^C` | copy line/region | `M-6` | position report (rare) |
+| `^H` | delete word backward | `M-Bsp` | nothing — Backspace key sends a different code |
+| `^J` | jump to matching bracket | `M-]` | justify (rare; `Esc J` remains) |
+| `^L` | comment/uncomment | `M-3` | refresh/center (cosmetic) |
+| `F7` / `F8` | previous / next buffer | `M-<` / `M->` | nothing (were unbound) |
+
+Cut/paste (`^K`/`^U`), mark (`^6`), search (`^W`, repeat with `Enter`, back
+with `^Q`), replace (`^\`), and go-to-line (`^_`, then `^Y`/`^V` for
+first/last line) already work without Meta. For the rare rest, single `Esc`
+acts as Meta (`Esc D` = word count) — map Caps Lock → Esc in macOS System
+Settings to make that comfortable. Full key table, install instructions, and
+old-nano (2.9.x) compatibility notes are in the file's header comments.
+
 List all current bindings from inside nano: `^G` (help shows the active keymap).
 
 ---
