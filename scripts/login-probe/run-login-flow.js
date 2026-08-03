@@ -396,14 +396,26 @@ async function dumpFormControls(formFrame, tag) {
 }
 
 // Optional keyboard steps that run AFTER Connect — e.g. dismiss a host-key or
-// connection dialog on the session tab. Each entry: { waitMs (default 5000),
-// keys (["Enter"] / ["Tab","Enter"] or a "Tab Enter" string), keyDelayMs }. An
-// absent/empty list runs nothing, so each step is opt-in via the config.
+// connection dialog on the session tab. Each entry: { verify (selector — press
+// only once this is visible), verifyTimeoutMs, waitMs (default 5000, or 0 when
+// verify is set), keys (["Enter"] / ["Tab","Enter"] or a "Tab Enter" string),
+// keyDelayMs }. An absent/empty list runs nothing, so each step is opt-in.
 async function runPostConnect(targetPage, steps) {
   if (!Array.isArray(steps) || !steps.length) return;
   console.log('▶ 5. post-Connect keyboard steps…');
   for (const [i, st] of steps.entries()) {
-    const wait = st.waitMs != null ? st.waitMs : 5000;
+    // verify: act only once the tab is actually SHOWING the expected content,
+    // instead of a blind timed wait. Never seen → SKIP this step's keys —
+    // pressing keys on the wrong screen is worse than doing nothing. (Canvas
+    // terminals render no DOM text, so those still need a waitMs instead.)
+    if (st.verify) {
+      const to = st.verifyTimeoutMs || 15000;
+      console.log(`   🔎 step ${i + 1}: waiting for ${JSON.stringify(st.verify)} (up to ${Math.round(to / 1000)}s)…`);
+      const seen = await findInAnyFrame(targetPage, st.verify, { timeout: to });
+      if (!seen) { console.warn(`   [warn] step ${i + 1}: ${JSON.stringify(st.verify)} never appeared — skipping its keys`); continue; }
+      console.log('   ✓ verified');
+    }
+    const wait = st.waitMs != null ? st.waitMs : (st.verify ? 0 : 5000);
     if (wait) { console.log(`   ⏱ step ${i + 1}: waiting ${wait}ms…`); await targetPage.waitForTimeout(wait); }
     const keys = Array.isArray(st.keys) ? st.keys : String(st.keys || '').split(/[\s,]+/).filter(Boolean);
     for (const k of keys) {
@@ -543,6 +555,27 @@ async function runAdhoc(page, context, ad) {
     const tag = `${n + 1}/${cfg.steps.length} ${step.name || step.selector || step.waitFor || 'pause'}`;
     console.log(`\n▶ step ${tag}`);
 
+    // verify: CONTENT CHECK before the step acts — wait until the page is
+    // actually showing the named control/text (same selector grammar as
+    // `selector`, searched across all frames). This replaces blind timed waits
+    // on slow pages: the step proceeds the moment the content is visible, and
+    // fails loudly (with a candidates dump + screenshot) if it never appears —
+    // so keys are never typed into the wrong screen. Especially useful on
+    // keyboard-only steps, which otherwise act on whatever happens to be there.
+    if (step.verify) {
+      const to = step.verifyTimeoutMs || step.timeoutMs || STEP_TIMEOUT;
+      console.log(`   🔎 verifying the page shows ${JSON.stringify(step.verify)} (up to ${Math.round(to / 1000)}s)…`);
+      const seen = await findInAnyFrame(page, step.verify, { timeout: to });
+      if (!seen) {
+        if (step.optional) { console.log('   • optional — expected content not seen, skipping step'); continue; }
+        console.error(`   ✗ the page never showed ${JSON.stringify(step.verify)} — wrong page, or still loading after ${Math.round(to / 1000)}s`);
+        await dumpCandidates(page, `verify-miss-${n + 1}`);
+        await page.screenshot({ path: path.join(OUT_DIR, `login-probe-verify-miss-${n + 1}.png`), fullPage: true }).catch(() => {});
+        ok = false; break;
+      }
+      console.log('   ✓ verified — page is showing the expected content');
+    }
+
     // waitFor step — NO terminal input. You do the OTP/MFA in the BROWSER; the
     // runner just watches until the page that appears AFTER it shows up (its
     // selector/text becomes visible), then continues. Give it a long timeout so
@@ -592,7 +625,8 @@ async function runAdhoc(page, context, ad) {
     // A named fixed pause (logged so the run shows where time went).
     const pause = async (ms, label) => { if (ms) { console.log(`   ⏱ ${label} ${ms}ms…`); await page.waitForTimeout(ms); } };
 
-    // Per-step timing knobs (all optional, milliseconds):
+    // Per-step timing knobs (all optional, milliseconds). `verify` (above) runs
+    // before all of these — prefer it over a blind waitBeforeMs on slow pages.
     //   waitBeforeMs      — before the step does anything
     //   waitBeforeTypeMs  — after preKeys, right BEFORE typing the value
     //   waitAfterTypeMs   — right AFTER typing the value, before keys/submit
