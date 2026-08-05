@@ -32,20 +32,30 @@ ghostty +show-config --default --docs | less   # every option, documented
 
 ## The big visual wins
 
-### 1. A good theme, switching with the OS
+### 1. A cool dark theme
 
 ```ini
-theme = light:Catppuccin Latte,dark:Catppuccin Mocha
+theme = Tokyonight Night
 ```
 
-One line gives you automatic light/dark switching that follows the system
-appearance. Since Ghostty 1.2 theme names are Title Case with spaces
-(`Catppuccin Mocha`, not `catppuccin-mocha`) — always confirm the exact
-name in `ghostty +list-themes`.
+Tokyonight Night has a deep blue-black background (`#1a1b26`) with cold,
+neon-leaning accents — the classic "cool dark" look. Since Ghostty 1.2
+theme names are Title Case with spaces (`Tokyonight Night`, not
+`tokyonight`) — always confirm the exact name in `ghostty +list-themes`.
 
-Crowd favorites for a dark setup: **Catppuccin Mocha** (soft pastels),
-**Tokyonight Night** (cool blues), **Rose Pine** (muted, elegant),
-**Kanagawa Wave** (ink-painting vibes), **Nord**, **Gruvbox Dark Hard**.
+Other favorites in the same mood: **Catppuccin Mocha** (soft pastels),
+**Rose Pine** (muted, elegant), **Kanagawa Wave** (ink-painting vibes),
+**Nord** (arctic blue-grey), **Challenger Deep** (dark purple).
+
+Two useful variations:
+
+```ini
+# Even darker: an explicit background overrides the theme's own
+background = #0d0e14
+
+# Or follow the OS appearance instead of being always-dark
+theme = light:Catppuccin Latte,dark:Tokyonight Night
+```
 
 ### 2. A font with breathing room
 
@@ -111,7 +121,7 @@ mouse-hide-while-typing = true
 copy-on-select = clipboard       # select = copied, like classic X11 but to
                                  # the real clipboard
 clipboard-paste-protection = true
-scrollback-limit-bytes = 67108864
+scrollback-limit = 67108864       # bytes; renamed scrollback-limit-bytes in 1.4
 window-save-state = always       # remember size/position
 shell-integration-features = cursor,sudo,title
 ```
@@ -175,6 +185,10 @@ Custom binds use `keybind = trigger=action`; see all actions with
   copy the exact string from `ghostty +list-themes`.
 - **Blur does nothing on Linux** — your compositor must support it (KWin
   does natively; GNOME needs the "Blur my Shell" extension).
+- **"Unknown field" error** — the option doesn't exist in your installed
+  version (e.g. `scrollback-limit-bytes` is the 1.4 name for what earlier
+  versions call `scrollback-limit`). Check what your build supports with
+  `ghostty +show-config --default --docs`.
 - **Config seems ignored** — run `ghostty +show-config` to see what Ghostty
   actually loaded, and check for typos; unknown keys are reported at
   startup.
