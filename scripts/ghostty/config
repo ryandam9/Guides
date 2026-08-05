@@ -12,12 +12,18 @@
 # so this single file is safe to use on both.
 
 # ── Theme ────────────────────────────────────────────────────────────────
-# Follows the OS appearance: light theme by day, dark theme at night.
+# Always dark, with a cool blue-black background (#1a1b26).
 # Browse all ~400 built-in themes interactively with:  ghostty +list-themes
-theme = light:Catppuccin Latte,dark:Catppuccin Mocha
+theme = Tokyonight Night
 
-# Other excellent dark themes to try (swap into the line above):
-#   Tokyonight Night · Rose Pine · Kanagawa Wave · Nord · Gruvbox Dark Hard
+# Other excellent cool/dark themes to try (swap into the line above):
+#   Catppuccin Mocha · Rose Pine · Kanagawa Wave · Nord · Challenger Deep
+#
+# Want it even darker? An explicit background overrides the theme's:
+# background = #0d0e14
+#
+# To follow the OS appearance instead (light by day, dark by night):
+# theme = light:Catppuccin Latte,dark:Tokyonight Night
 
 # ── Font ─────────────────────────────────────────────────────────────────
 # Ghostty bundles Nerd Font symbols, so a plain font gets icons for free —
@@ -87,8 +93,9 @@ clipboard-trim-trailing-spaces = true
 shell-integration-features = cursor,sudo,title
 
 # ── Scrollback ───────────────────────────────────────────────────────────
-# 64 MB of scrollback (per terminal) instead of the small default.
-scrollback-limit-bytes = 67108864
+# 64 MB of scrollback (per terminal), in bytes. (Ghostty 1.4 renames this
+# to `scrollback-limit-bytes`, but the old name keeps working there too.)
+scrollback-limit = 67108864
 
 # ── macOS polish (ignored on Linux) ──────────────────────────────────────
 # Tabs live inside the titlebar — maximum screen space, very clean.
