@@ -1,15 +1,11 @@
-# Ghostty configuration
-# ─────────────────────
+# Ghostty configuration (macOS)
+# ─────────────────────────────
 # Copy (or symlink) this file to:
-#   Linux : ~/.config/ghostty/config
-#   macOS : ~/.config/ghostty/config   (also works)
-#           or ~/Library/Application Support/com.mitchellh.ghostty/config
+#   ~/.config/ghostty/config
+#   (or ~/Library/Application Support/com.mitchellh.ghostty/config)
 #
-# Reload with cmd+shift+, (macOS) / ctrl+shift+, (Linux) — no restart needed
-# for most options. Window/titlebar options need a new window.
-#
-# Platform-specific options (macos-*, gtk-*) are ignored on the other OS,
-# so this single file is safe to use on both.
+# Reload with cmd+shift+, — no restart needed for most options.
+# Window/titlebar options need a new window.
 
 # ── Theme ────────────────────────────────────────────────────────────────
 # Always dark, with a cool blue-black background (#1a1b26).
@@ -97,7 +93,7 @@ shell-integration-features = cursor,sudo,title
 # to `scrollback-limit-bytes`, but the old name keeps working there too.)
 scrollback-limit = 67108864
 
-# ── macOS polish (ignored on Linux) ──────────────────────────────────────
+# ── macOS polish ─────────────────────────────────────────────────────────
 # Tabs live inside the titlebar — maximum screen space, very clean.
 macos-titlebar-style = tabs
 # Right Option stays Option (for # € etc.), left becomes Alt for the shell.
@@ -109,23 +105,15 @@ window-colorspace = display-p3
 # macos-icon-ghost-color = #cdd6f4
 # macos-icon-screen-color = #1e1e2e
 
-# ── Linux / GTK polish (ignored on macOS) ────────────────────────────────
-gtk-single-instance = true
-gtk-titlebar = true
-window-theme = ghostty
-
 # ── Quick terminal: drop-down from the top of the screen ─────────────────
 quick-terminal-position = top
-# macOS: works system-wide (grant Accessibility permission when prompted).
+# Works system-wide (grant Accessibility permission when prompted).
 keybind = global:cmd+grave_accent=toggle_quick_terminal
-# Linux equivalent (in-app):
-keybind = ctrl+grave_accent=toggle_quick_terminal
 
 # ── Extra keybinds ───────────────────────────────────────────────────────
-# Ghostty's defaults already cover splits/tabs (cmd+d, cmd+shift+d, cmd+t,
-# ctrl+shift+e / ctrl+shift+o on Linux). A few nice additions:
+# Ghostty's defaults already cover splits/tabs (cmd+d, cmd+shift+d, cmd+t).
+# A nice addition:
 keybind = cmd+shift+r=reload_config
-keybind = ctrl+shift+r=reload_config
 
 # ── Custom shaders (optional eye candy) ──────────────────────────────────
 # Ghostty can run GLSL shaders over the whole terminal — CRT curvature,

@@ -18,10 +18,8 @@ mkdir -p ~/.config/ghostty
 cp scripts/ghostty/config ~/.config/ghostty/config
 ```
 
-Both macOS and Linux read `~/.config/ghostty/config`. Reload a running
-Ghostty with `cmd+shift+,` (macOS) or `ctrl+shift+,` (Linux). Options that
-affect the window frame (titlebar style, decorations) apply to *new*
-windows.
+Reload a running Ghostty with `cmd+shift+,`. Options that affect the
+window frame (titlebar style, decorations) apply to *new* windows.
 
 Two commands worth knowing before you touch anything:
 
@@ -63,7 +61,7 @@ theme = light:Catppuccin Latte,dark:Tokyonight Night
 font-family = JetBrains Mono
 font-size = 13
 adjust-cell-height = 10%
-font-thicken = true          # macOS only: restores font weight
+font-thicken = true          # restores the weight macOS renders too thin
 ```
 
 - Ghostty **bundles Nerd Font symbols** — use the plain font, and icons in
@@ -88,10 +86,8 @@ minimum-contrast = 1.1
 
 Opacity below ~0.85 starts hurting readability; `0.90–0.96` is the sweet
 spot. The `background-blur` value is a blur radius — `20` gives the frosted
-look. On Linux, blur needs a compositor that supports it (KDE/KWin does;
-GNOME needs an extension). `minimum-contrast` is the safety net: Ghostty
-will nudge any color combination so text never disappears into the
-background.
+look. `minimum-contrast` is the safety net: Ghostty will nudge any color
+combination so text never disappears into the background.
 
 ### 4. Padding and a tidy window
 
@@ -106,10 +102,9 @@ Padding stops text from touching the window edge — the difference between
 "default terminal" and "screenshot-ready". `extend` bleeds full-screen apps'
 colors into the padding so there's no visible gutter.
 
-On macOS, `macos-titlebar-style = tabs` puts tabs *inside* the titlebar —
-the cleanest chrome Ghostty offers. (Alternatives: `transparent`, `native`,
-`hidden`.) On Linux, `window-theme = ghostty` colors the GTK window chrome
-to match your terminal theme.
+`macos-titlebar-style = tabs` puts tabs *inside* the titlebar — the
+cleanest chrome Ghostty offers. (Alternatives: `transparent`, `native`,
+`hidden`.)
 
 ## Quality-of-life settings
 
@@ -136,13 +131,12 @@ A drop-down terminal (Quake-style) that slides from the screen edge:
 
 ```ini
 quick-terminal-position = top
-keybind = global:cmd+grave_accent=toggle_quick_terminal   # macOS, system-wide
-keybind = ctrl+grave_accent=toggle_quick_terminal          # Linux, in-app
+keybind = global:cmd+grave_accent=toggle_quick_terminal   # system-wide
 ```
 
-The `global:` prefix makes it work from *any* app on macOS (grant the
-Accessibility permission when asked). Press `` cmd+` `` anywhere and a
-terminal drops down; press again and it slides away.
+The `global:` prefix makes it work from *any* app (grant the Accessibility
+permission when asked). Press `` cmd+` `` anywhere and a terminal drops
+down; press again and it slides away.
 
 ## Custom shaders (the party trick)
 
@@ -165,16 +159,16 @@ There's also `background-image` (with `background-image-opacity` and
 
 ## Useful default keybinds
 
-| Action | macOS | Linux |
-| --- | --- | --- |
-| New tab | `cmd+t` | `ctrl+shift+t` |
-| Split right | `cmd+d` | `ctrl+shift+o` |
-| Split down | `cmd+shift+d` | `ctrl+shift+e` |
-| Move between splits | `cmd+opt+arrows` | `ctrl+alt+arrows` |
-| Zoom a split | `cmd+shift+enter` | `ctrl+shift+enter` |
-| Jump between prompts | `cmd+up` / `cmd+down` | — |
-| Reload config | `cmd+shift+,` | `ctrl+shift+,` |
-| Command palette | `cmd+shift+p` | `ctrl+shift+p` |
+| Action | Keys |
+| --- | --- |
+| New tab | `cmd+t` |
+| Split right | `cmd+d` |
+| Split down | `cmd+shift+d` |
+| Move between splits | `cmd+opt+arrows` |
+| Zoom a split | `cmd+shift+enter` |
+| Jump between prompts | `cmd+up` / `cmd+down` |
+| Reload config | `cmd+shift+,` |
+| Command palette | `cmd+shift+p` |
 
 Custom binds use `keybind = trigger=action`; see all actions with
 `ghostty +list-actions` and current binds with `ghostty +list-keybinds`.
@@ -183,8 +177,6 @@ Custom binds use `keybind = trigger=action`; see all actions with
 
 - **Theme name not found** — names are case-sensitive and changed in 1.2;
   copy the exact string from `ghostty +list-themes`.
-- **Blur does nothing on Linux** — your compositor must support it (KWin
-  does natively; GNOME needs the "Blur my Shell" extension).
 - **"Unknown field" error** — the option doesn't exist in your installed
   version (e.g. `scrollback-limit-bytes` is the 1.4 name for what earlier
   versions call `scrollback-limit`). Check what your build supports with
