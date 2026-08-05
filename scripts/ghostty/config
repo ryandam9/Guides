@@ -1,0 +1,129 @@
+# Ghostty configuration
+# ─────────────────────
+# Copy (or symlink) this file to:
+#   Linux : ~/.config/ghostty/config
+#   macOS : ~/.config/ghostty/config   (also works)
+#           or ~/Library/Application Support/com.mitchellh.ghostty/config
+#
+# Reload with cmd+shift+, (macOS) / ctrl+shift+, (Linux) — no restart needed
+# for most options. Window/titlebar options need a new window.
+#
+# Platform-specific options (macos-*, gtk-*) are ignored on the other OS,
+# so this single file is safe to use on both.
+
+# ── Theme ────────────────────────────────────────────────────────────────
+# Follows the OS appearance: light theme by day, dark theme at night.
+# Browse all ~400 built-in themes interactively with:  ghostty +list-themes
+theme = light:Catppuccin Latte,dark:Catppuccin Mocha
+
+# Other excellent dark themes to try (swap into the line above):
+#   Tokyonight Night · Rose Pine · Kanagawa Wave · Nord · Gruvbox Dark Hard
+
+# ── Font ─────────────────────────────────────────────────────────────────
+# Ghostty bundles Nerd Font symbols, so a plain font gets icons for free —
+# no patched "Nerd Font" build required.
+font-family = JetBrains Mono
+font-size = 13
+
+# A touch more line spacing makes text much easier to read.
+adjust-cell-height = 10%
+
+# macOS renders thin fonts; this restores the weight other platforms show.
+font-thicken = true
+
+# JetBrains Mono ligatures (=>, !=, ->) are on by default.
+# To turn them off, uncomment:
+# font-feature = -calt
+# font-feature = -liga
+# font-feature = -dlig
+
+# ── Background: frosted-glass look ───────────────────────────────────────
+background-opacity = 0.92
+background-blur = 20
+
+# Keep cell backgrounds (e.g. in vim/htop) solid so only the window base
+# is translucent — looks cleaner than blurring everything.
+background-opacity-cells = false
+
+# Guarantee text stays readable no matter what colors a program picks.
+minimum-contrast = 1.1
+
+# Slightly fade splits that don't have focus.
+unfocused-split-opacity = 0.85
+
+# ── Window ───────────────────────────────────────────────────────────────
+window-padding-x = 12
+window-padding-y = 12
+window-padding-balance = true
+# When a program paints the screen edge-to-edge, extend its colors into the
+# padding instead of showing a hard border.
+window-padding-color = extend
+
+# Remember window size/position across restarts.
+window-save-state = always
+
+# Nicer default size for new windows.
+window-height = 32
+window-width = 120
+
+# ── Cursor ───────────────────────────────────────────────────────────────
+cursor-style = block
+cursor-style-blink = false
+# Click while holding alt/option to move the prompt cursor to that spot
+# (needs shell integration, which is on by default).
+cursor-click-to-move = true
+
+# ── Mouse & clipboard ────────────────────────────────────────────────────
+mouse-hide-while-typing = true
+copy-on-select = clipboard
+clipboard-paste-protection = true
+clipboard-trim-trailing-spaces = true
+
+# ── Shell integration ────────────────────────────────────────────────────
+# Auto-detected for bash/zsh/fish. Extras:
+#   cursor  – bar cursor at the prompt, block elsewhere
+#   sudo    – sudo keeps terminfo working
+#   title   – window title tracks command/directory
+shell-integration-features = cursor,sudo,title
+
+# ── Scrollback ───────────────────────────────────────────────────────────
+# 64 MB of scrollback (per terminal) instead of the small default.
+scrollback-limit-bytes = 67108864
+
+# ── macOS polish (ignored on Linux) ──────────────────────────────────────
+# Tabs live inside the titlebar — maximum screen space, very clean.
+macos-titlebar-style = tabs
+# Right Option stays Option (for # € etc.), left becomes Alt for the shell.
+macos-option-as-alt = left
+# Wider color gamut on modern Apple displays.
+window-colorspace = display-p3
+# Tint the app icon to match your theme (pure fun).
+# macos-icon = custom-style
+# macos-icon-ghost-color = #cdd6f4
+# macos-icon-screen-color = #1e1e2e
+
+# ── Linux / GTK polish (ignored on macOS) ────────────────────────────────
+gtk-single-instance = true
+gtk-titlebar = true
+window-theme = ghostty
+
+# ── Quick terminal: drop-down from the top of the screen ─────────────────
+quick-terminal-position = top
+# macOS: works system-wide (grant Accessibility permission when prompted).
+keybind = global:cmd+grave_accent=toggle_quick_terminal
+# Linux equivalent (in-app):
+keybind = ctrl+grave_accent=toggle_quick_terminal
+
+# ── Extra keybinds ───────────────────────────────────────────────────────
+# Ghostty's defaults already cover splits/tabs (cmd+d, cmd+shift+d, cmd+t,
+# ctrl+shift+e / ctrl+shift+o on Linux). A few nice additions:
+keybind = cmd+shift+r=reload_config
+keybind = ctrl+shift+r=reload_config
+
+# ── Custom shaders (optional eye candy) ──────────────────────────────────
+# Ghostty can run GLSL shaders over the whole terminal — CRT curvature,
+# glow, animated cursor trails. Grab some from
+# https://github.com/hackr-sh/ghostty-shaders, drop them next to this file,
+# then uncomment:
+# custom-shader = shaders/cursor_smear.glsl
+# custom-shader-animation = true
