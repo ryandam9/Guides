@@ -142,20 +142,104 @@ down; press again and it slides away.
 
 Ghostty can post-process the whole terminal with GLSL shaders — Shadertoy
 format. People have built CRT curvature, bloom/glow, rain effects, and
-animated "cursor smear" trails:
+animated cursor trails that smear behind the cursor as it moves.
+
+Run [`scripts/ghostty/get-shaders.sh`](../scripts/ghostty/get-shaders.sh)
+to download two good community packs into `~/.config/ghostty/shaders`
+([0xhckr/ghostty-shaders](https://github.com/0xhckr/ghostty-shaders) for
+bloom/CRT/retro effects, [sahaj-b/ghostty-cursor-shaders](https://github.com/sahaj-b/ghostty-cursor-shaders)
+for cursor trails and ripples) — it lists every `.glsl` file it installed.
+Then enable your picks:
 
 ```ini
-custom-shader = shaders/cursor_smear.glsl
-custom-shader-animation = true
+custom-shader = shaders/ghostty-shaders/bloom.glsl
+custom-shader = shaders/ghostty-cursor-shaders/trail.glsl
+custom-shader-animation = always
 ```
 
-Good collections: [hackr-sh/ghostty-shaders](https://github.com/hackr-sh/ghostty-shaders)
-(forked widely; search GitHub for "ghostty shaders" for more). Shader paths
-are relative to the config file. Subtle ones (light bloom, cursor trail)
-look fantastic; full CRT effects are fun for about a day.
+Multiple `custom-shader` lines stack, paths are relative to the config
+file, and cursor-trail shaders need `custom-shader-animation = always`
+(they animate even when nothing is being typed). Most shaders expose
+tweakable parameters — color, trail duration, thickness — as constants at
+the top of the file. Subtle ones (light bloom, cursor trail) look
+fantastic; full CRT effects are fun for about a day.
 
-There's also `background-image` (with `background-image-opacity` and
-`background-image-fit`) if you want wallpaper behind your shell.
+## Going further
+
+### Leader-key keybinds (tmux-style)
+
+`>` chains keys into a sequence — press the first combo, release, press
+the next key:
+
+```ini
+keybind = cmd+s>d=new_split:right
+keybind = cmd+s>shift+d=new_split:down
+keybind = cmd+s>z=toggle_split_zoom
+keybind = cmd+s>e=equalize_splits
+```
+
+Prefixes add superpowers: `global:` makes a bind work system-wide even
+when Ghostty isn't focused, `performable:` only swallows the key when the
+action can actually run, `all:` targets every open terminal at once, and
+`unconsumed:` runs the action *and* still delivers the key to the shell.
+
+### Custom command-palette entries
+
+`cmd+shift+p` opens a searchable palette of every action. Add your own:
+
+```ini
+command-palette-entry = title:Reset Font Style, action:csi:0m
+command-palette-entry = title:"Ghost", description:"Summon a ghost", action:"text:\xf0\x9f\x91\xbb"
+```
+
+Any keybind action works (`text:`, `csi:`, `new_split:right`, ...), so
+rarely-used operations can live in the palette instead of eating a
+keybind.
+
+### Wallpaper inside the terminal
+
+```ini
+background-image = ~/Pictures/wallpaper.jpg
+background-image-opacity = 0.08
+background-image-fit = cover
+```
+
+Keep the opacity very low (0.05–0.15) — it reads as texture, not a
+picture, and text stays legible. Combines with `background-opacity`.
+
+### Split and color styling
+
+```ini
+split-divider-color = #3b4261     # divider matches the theme
+unfocused-split-fill = #16161e    # tint used to fade unfocused splits
+bold-color = bright               # bold text uses the bright palette
+cursor-color = #7aa2f7            # force a cursor color over the theme
+cursor-opacity = 0.85             # cursor never fully hides its glyph
+palette = 4=#82aaff               # override any of the 16 ANSI colors
+```
+
+### A themed Dock icon
+
+```ini
+macos-icon = custom-style
+macos-icon-ghost-color = #7aa2f7
+macos-icon-screen-color = #1a1b26
+```
+
+Recolors the actual app icon — a Tokyonight-blue ghost on a dark screen.
+Takes effect after restarting the app. (This one is active in the repo
+config.)
+
+### Odds and ends
+
+```ini
+alpha-blending = linear-corrected     # alternative glyph blending; try it
+bell-features = attention, title, border  # visual bell instead of sound
+mouse-scroll-multiplier = 2           # faster wheel scrolling
+window-title-font-family = SF Pro     # different font for tab titles
+macos-non-native-fullscreen = true    # fullscreen without a macOS Space
+quick-terminal-animation-duration = 0.15  # snappier drop-down
+```
 
 ## Useful default keybinds
 
