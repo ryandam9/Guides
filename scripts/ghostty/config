@@ -53,6 +53,18 @@ minimum-contrast = 1.1
 # Slightly fade splits that don't have focus.
 unfocused-split-opacity = 0.85
 
+# Color the split divider + the fade overlay to match the theme:
+# split-divider-color = #3b4261
+# unfocused-split-fill = #16161e
+
+# Render bold text with the bright palette variant — makes bold pop:
+# bold-color = bright
+
+# Wallpaper *inside* the terminal (very dim so text stays readable):
+# background-image = ~/Pictures/wallpaper.jpg
+# background-image-opacity = 0.08
+# background-image-fit = cover
+
 # ── Window ───────────────────────────────────────────────────────────────
 window-padding-x = 12
 window-padding-y = 12
@@ -74,6 +86,10 @@ cursor-style-blink = false
 # Click while holding alt/option to move the prompt cursor to that spot
 # (needs shell integration, which is on by default).
 cursor-click-to-move = true
+# Force a cursor color regardless of theme (Tokyonight blue):
+# cursor-color = #7aa2f7
+# Slightly see-through cursor so it never hides the glyph under it:
+# cursor-opacity = 0.85
 
 # ── Mouse & clipboard ────────────────────────────────────────────────────
 mouse-hide-while-typing = true
@@ -100,25 +116,61 @@ macos-titlebar-style = tabs
 macos-option-as-alt = left
 # Wider color gamut on modern Apple displays.
 window-colorspace = display-p3
-# Tint the app icon to match your theme (pure fun).
-# macos-icon = custom-style
-# macos-icon-ghost-color = #cdd6f4
-# macos-icon-screen-color = #1e1e2e
+# Tint the Dock icon to match Tokyonight (pure fun — needs app restart).
+macos-icon = custom-style
+macos-icon-ghost-color = #7aa2f7
+macos-icon-screen-color = #1a1b26
+# Fast fullscreen without creating a macOS Space:
+# macos-non-native-fullscreen = true
 
 # ── Quick terminal: drop-down from the top of the screen ─────────────────
 quick-terminal-position = top
 # Works system-wide (grant Accessibility permission when prompted).
 keybind = global:cmd+grave_accent=toggle_quick_terminal
+# Snappier slide-in (seconds):
+# quick-terminal-animation-duration = 0.15
+
+# ── Fine tuning (all optional) ───────────────────────────────────────────
+# Crisper glyph edges; try it and keep whichever you prefer:
+# alpha-blending = linear-corrected
+# Bell: bounce the Dock icon, mark the tab title, flash a border:
+# bell-features = attention, title, border
+# Faster wheel scrolling:
+# mouse-scroll-multiplier = 2
+# Different font for the window/tab titles:
+# window-title-font-family = SF Pro
 
 # ── Extra keybinds ───────────────────────────────────────────────────────
 # Ghostty's defaults already cover splits/tabs (cmd+d, cmd+shift+d, cmd+t).
 # A nice addition:
 keybind = cmd+shift+r=reload_config
 
+# Keybind sequences (leader keys, tmux-style): press cmd+s, release, then
+# the second key. `>` chains the keys:
+# keybind = cmd+s>d=new_split:right
+# keybind = cmd+s>shift+d=new_split:down
+# keybind = cmd+s>z=toggle_split_zoom
+# keybind = cmd+s>e=equalize_splits
+#
+# Other useful prefixes:
+#   global:      works system-wide, even when Ghostty isn't focused (macOS)
+#   performable: only consumes the key when the action can actually run
+#   all:         applies to every terminal surface, not just the focused one
+#   unconsumed:  runs the action AND still sends the key to the program
+
+# ── Command palette (cmd+shift+p) custom entries ─────────────────────────
+# Add your own actions to the built-in palette:
+# command-palette-entry = title:Reset Font Style, action:csi:0m
+# command-palette-entry = title:"Ghost", description:"Summon a ghost", action:"text:\xf0\x9f\x91\xbb"
+
 # ── Custom shaders (optional eye candy) ──────────────────────────────────
-# Ghostty can run GLSL shaders over the whole terminal — CRT curvature,
-# glow, animated cursor trails. Grab some from
-# https://github.com/hackr-sh/ghostty-shaders, drop them next to this file,
-# then uncomment:
-# custom-shader = shaders/cursor_smear.glsl
-# custom-shader-animation = true
+# Ghostty runs Shadertoy-style GLSL shaders over the terminal: animated
+# cursor trails, bloom/glow, CRT curvature. Multiple custom-shader lines
+# stack. Get shaders with:  scripts/ghostty/get-shaders.sh
+# then uncomment (paths are relative to this config file):
+#
+# custom-shader = shaders/ghostty-shaders/bloom.glsl
+# custom-shader = shaders/ghostty-cursor-shaders/<pick-one>.glsl
+#
+# Cursor-trail shaders animate outside of typing, so they need `always`:
+# custom-shader-animation = always
