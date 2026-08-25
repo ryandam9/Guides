@@ -1,0 +1,24 @@
+[Unit]
+Description=Refresh CloudWatch Agent configuration for XYZ job logs
+Documentation=https://github.com/ryandam9/Guides/blob/master/docs/cloudwatch-job-log-architecture.md
+After=network-online.target amazon-cloudwatch-agent.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/default/xyz-cwlogs-refresh
+ExecStart=/usr/local/sbin/refresh-xyz-cwlogs.sh
+User=root
+Group=root
+UMask=0022
+TimeoutStartSec=90
+Nice=10
+
+# Lightweight hardening that does not block writes to the CloudWatch Agent
+# configuration directory under /opt.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
