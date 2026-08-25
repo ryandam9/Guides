@@ -20,8 +20,8 @@ PROGRAM_NAME="${0##*/}"
 DEFAULT_SETTINGS_FILE="/etc/default/xyz-cwlogs-refresh"
 SETTINGS_FILE="${XYZ_CWLOGS_SETTINGS_FILE:-$DEFAULT_SETTINGS_FILE}"
 
-# Load host-specific settings first. Explicit environment variables may be
-# supplied by tests/deployment wrappers by using a custom SETTINGS_FILE.
+# Load host-specific settings first. A custom settings file can be supplied
+# through XYZ_CWLOGS_SETTINGS_FILE for testing or alternate deployments.
 if [[ -r "$SETTINGS_FILE" ]]; then
     # shellcheck disable=SC1090
     source "$SETTINGS_FILE"
@@ -39,9 +39,11 @@ LOCK_DIR="${LOCK_DIR:-/run/xyz-cwlogs-refresh.lock}"
 
 DRY_RUN=false
 FORCE=false
+LOCK_ACQUIRED=false
 
 log() {
-    printf '%s: %s\n' "$PROGRAM_NAME" "$*"
+    # Keep stdout available for machine-readable --dry-run JSON.
+    printf '%s: %s\n' "$PROGRAM_NAME" "$*" >&2
 }
 
 warn() {
@@ -103,7 +105,10 @@ json_escape() {
 }
 
 release_lock() {
-    rmdir "$LOCK_DIR" 2>/dev/null || true
+    if [[ "$LOCK_ACQUIRED" == true ]]; then
+        rmdir "$LOCK_DIR" 2>/dev/null || true
+        LOCK_ACQUIRED=false
+    fi
 }
 
 acquire_lock() {
@@ -111,6 +116,7 @@ acquire_lock() {
         log "Another refresh is already running; exiting."
         exit 0
     fi
+    LOCK_ACQUIRED=true
     trap release_lock EXIT INT TERM HUP
 }
 
@@ -280,7 +286,12 @@ apply_config() {
 
 main() {
     validate_environment
-    acquire_lock
+
+    # Dry-run is intentionally read-only, so it does not need or modify the
+    # service lock under /run.
+    if [[ "$DRY_RUN" == false ]]; then
+        acquire_lock
+    fi
 
     local temp_parent temp_file count
 
