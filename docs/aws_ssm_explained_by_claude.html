@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Claude">
+<meta name="color-scheme" content="light dark">
+<title>AWS SSM Session Manager explained</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: one column; diagram on top, step player under it, reference notes below */
+:root {
+  --bg: #f3f5f7;
+  --panel: #ffffff;
+  --fg: #18202a;
+  --muted: #5b6878;
+  --line: #c9d1db;
+  --faint: #dde3ea;
+  --accent: #c76a00;
+  --accent-soft: #fbe9d3;
+  --region: #eef2f6;
+  --vpc: #eef4ef;
+  --ok: #2f7a4a;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161c; --panel: #1a2029; --fg: #e4e9ef; --muted: #98a4b3; --line: #3a4554; --faint: #2a323d;
+    --accent: #f0a040; --accent-soft: #3a2a14; --region: #18202a; --vpc: #16211b; --ok: #6cc08a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161c; --panel: #1a2029; --fg: #e4e9ef; --muted: #98a4b3; --line: #3a4554; --faint: #2a323d;
+  --accent: #f0a040; --accent-soft: #3a2a14; --region: #18202a; --vpc: #16211b; --ok: #6cc08a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--body); padding-inline: 16px; padding-block: 28px 56px; }
+main { max-width: 980px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: 2rem; line-height: 1.15; }
+h2 { font-size: 1.3rem; }
+.lede { color: var(--muted); max-width: 65ch; margin: 6px 0 0; }
+.lede strong { color: var(--fg); }
+code { font-family: var(--mono); font-size: .88em; background: var(--faint); padding: 1px 5px; border-radius: 3px; }
+.diagram { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; }
+.diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+svg text { font-family: var(--body); fill: var(--fg); }
+svg .t-title { font-family: var(--display); font-weight: 600; font-size: 15px; }
+svg .t-small { font-size: 12px; fill: var(--muted); }
+svg .t-mono { font-family: var(--mono); font-size: 11.5px; fill: var(--muted); }
+svg .t-label { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+svg .zone { stroke: var(--line); stroke-width: 1; stroke-dasharray: 5 4; }
+svg .zone.region { fill: var(--region); }
+svg .zone.vpc { fill: var(--vpc); }
+svg .box { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; transition: stroke .25s, fill .25s; }
+svg .on .box, svg .box.on { stroke: var(--accent); stroke-width: 2; fill: var(--accent-soft); }
+svg .link { stroke: var(--line); stroke-width: 1.6; fill: none; transition: stroke .25s; }
+svg .link.on { stroke: var(--accent); stroke-width: 2.6; stroke-dasharray: 7 5; animation: flow 0.9s linear infinite; }
+svg .head { fill: var(--line); transition: fill .25s; }
+svg .head.on { fill: var(--accent); }
+svg .lbl.on { fill: var(--accent); }
+svg .sg { fill: var(--ok); font-family: var(--mono); font-size: 11px; }
+@keyframes flow { to { stroke-dashoffset: -24; } }
+@media (prefers-reduced-motion: reduce) { svg .link.on { animation: none; } }
+
+.player { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 20px; display: grid; gap: 14px; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { font: 500 13px/1 var(--body); border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 7px 12px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.pill b { font-family: var(--mono); font-weight: 500; }
+.pill[aria-current="step"] { border-color: var(--accent); color: var(--fg); background: var(--accent-soft); }
+.pill:focus-visible, .nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.step-body { min-height: 9.5em; }
+.step-body h3 { font: 600 1.1rem/1.3 var(--display); margin: 0 0 6px; }
+.step-body p { margin: 0 0 8px; max-width: 70ch; }
+.nav { display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.nav button { font: 500 14px/1 var(--body); padding: 9px 16px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
+.nav button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.nav button:disabled { opacity: .45; cursor: default; }
+.nav .count { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.note { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.note p, .note ul { margin: 0; }
+.note ul { padding-left: 1.1em; display: grid; gap: 4px; }
+pre { margin: 0; font: 12.5px/1.55 var(--mono); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 12px; overflow-x: auto; }
+.legend { font-size: 13px; color: var(--muted); }
+.byline { font-family: var(--mono); font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+.summary { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: 16px 20px; display: grid; gap: 8px; }
+.summary h2 { font-size: 1.1rem; }
+.summary ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; max-width: 75ch; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>How SSM Session Manager connects you</h1>
+    <p class="lede"><strong>Your IAM role is the key, and the instance connects out to AWS.</strong> Nothing connects in to the instance. The instance has no public IP, no open port 22, and no inbound security group rule. Use the steps under the diagram to follow one session.</p>
+    <p class="byline">Author: Claude</p>
+  </header>
+
+  <section class="summary" aria-labelledby="sum-h">
+    <h2 id="sum-h">Summary</h2>
+    <ul>
+      <li>AWS Systems Manager Session Manager gives you a shell on an EC2 instance. You need no SSH key, no password, no bastion host and no open inbound port.</li>
+      <li>IAM checks who you are. Your role must allow <code>ssm:StartSession</code> on the instance. This check is the only login.</li>
+      <li>The SSM Agent on the instance opens outbound HTTPS connections to AWS. AWS never opens a connection in to the instance.</li>
+      <li>The Session Manager relay joins the WebSocket from your laptop to the WebSocket from the agent. The agent runs as root and starts the shell as <code>ssm-user</code>.</li>
+      <li>CloudTrail records each session start. You can send the session output to S3 or CloudWatch Logs.</li>
+    </ul>
+  </section>
+
+
+  <section class="diagram" aria-label="Session Manager connection diagram">
+    <svg viewBox="0 0 900 440" role="img" aria-labelledby="dg-title">
+      <title id="dg-title">Laptop, AWS Region services, and a private EC2 instance. All connections go from the laptop or the instance to AWS.</title>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="head" id="h-dummy"/></marker>
+      </defs>
+
+      <!-- zones -->
+      <rect class="zone region" x="240" y="16" width="350" height="408" rx="8"/>
+      <text class="t-label" x="256" y="36">AWS REGION (AWS-MANAGED)</text>
+      <rect class="zone vpc" x="606" y="16" width="280" height="408" rx="8"/>
+      <text class="t-label" x="622" y="36">YOUR VPC · PRIVATE SUBNET</text>
+      <text class="sg" x="622" y="410">Security group inbound: none</text>
+
+      <!-- laptop -->
+      <g id="laptop">
+        <rect class="box" x="16" y="150" width="190" height="150" rx="6"/>
+        <text class="t-title" x="30" y="176">Your laptop</text>
+        <text class="t-mono" x="30" y="200">aws ssm start-session</text>
+        <text class="t-mono" x="30" y="218">session-manager-plugin</text>
+        <text class="t-small" x="30" y="250">Credentials:</text>
+        <text class="t-small" x="30" y="268">temporary keys for</text>
+        <text class="t-small" x="30" y="286">your IAM role</text>
+      </g>
+
+      <!-- AWS services -->
+      <g id="iam"><rect class="box" x="275" y="50" width="280" height="56" rx="6"/>
+        <text class="t-title" x="290" y="74">IAM</text>
+        <text class="t-small" x="290" y="94">Is ssm:StartSession allowed?</text></g>
+      <g id="ssmapi"><rect class="box" x="275" y="128" width="280" height="56" rx="6"/>
+        <text class="t-title" x="290" y="152">Systems Manager API</text>
+        <text class="t-mono" x="290" y="172">ssm.&lt;region&gt;.amazonaws.com</text></g>
+      <g id="relay"><rect class="box" x="275" y="206" width="280" height="84" rx="6"/>
+        <text class="t-title" x="290" y="230">Session Manager relay</text>
+        <text class="t-mono" x="290" y="250">ssmmessages.&lt;region&gt;…</text>
+        <text class="t-small" x="290" y="274">Joins two WebSockets</text></g>
+      <g id="trail"><rect class="box" x="275" y="346" width="280" height="56" rx="6"/>
+        <text class="t-title" x="290" y="370">CloudTrail · S3 · CloudWatch</text>
+        <text class="t-small" x="290" y="390">Records who started each session</text></g>
+
+      <!-- VPC: endpoint and instance -->
+      <g id="ep"><rect class="box" x="618" y="120" width="56" height="190" rx="6"/>
+        <text class="t-small" transform="translate(651 300) rotate(-90)">NAT gateway or VPC endpoints</text></g>
+      <g id="ec2"><rect class="box" x="694" y="56" width="180" height="340" rx="6"/>
+        <text class="t-title" x="708" y="80">EC2 instance</text>
+        <text class="t-small" x="708" y="98">No public IP</text></g>
+      <g id="agent"><rect class="box" x="708" y="120" width="152" height="110" rx="6"/>
+        <text class="t-title" x="720" y="144">SSM Agent</text>
+        <text class="t-small" x="720" y="164">Runs as root</text>
+        <text class="t-small" x="720" y="182">Opens all connections</text>
+        <text class="t-small" x="720" y="200">outbound, HTTPS 443</text></g>
+      <g id="shell"><rect class="box" x="708" y="248" width="152" height="56" rx="6"/>
+        <text class="t-title" x="720" y="272">Shell</text>
+        <text class="t-mono" x="720" y="292">user: ssm-user</text></g>
+      <g id="role"><rect class="box" x="708" y="316" width="152" height="72" rx="6"/>
+        <text class="t-title" x="720" y="338">Instance role</text>
+        <text class="t-mono" x="720" y="358">AmazonSSMManaged</text>
+        <text class="t-mono" x="720" y="374">InstanceCore</text></g>
+
+      <!-- links: arrow points from the side that opens the connection -->
+      <path id="l-start" class="link" d="M206,175 L273,160" marker-end="url(#arr)"/>
+      <text id="t-start" class="t-label lbl" x="210" y="150">HTTPS</text>
+      <path id="l-iam" class="link" d="M415,128 L415,108" marker-end="url(#arr)"/>
+      <path id="l-notify" class="link" d="M415,184 L415,204" marker-end="url(#arr)"/>
+      <path id="l-ws" class="link" d="M206,265 L273,265" marker-end="url(#arr)"/>
+      <text id="t-ws" class="t-label lbl" x="208" y="320">WebSocket</text>
+      <path id="l-log" class="link" d="M415,290 L415,344" marker-end="url(#arr)"/>
+      <path id="l-reg" class="link" d="M708,140 L557,150" marker-end="url(#arr)"/>
+      <text id="t-reg" class="t-label lbl" x="560" y="112">register</text>
+      <path id="l-ctrl" class="link" d="M708,205 L557,228" marker-end="url(#arr)"/>
+      <text id="t-ctrl" class="t-label lbl" x="560" y="200">control</text>
+      <path id="l-data" class="link" d="M708,222 L557,268" marker-end="url(#arr)"/>
+      <text id="t-data" class="t-label lbl" x="566" y="300">data</text>
+      <path id="l-pty" class="link" d="M784,230 L784,246" marker-end="url(#arr)"/>
+    </svg>
+  </section>
+  <p class="legend">Each arrow points away from the side that opens the connection. Arrows go from your laptop to AWS and from the instance to AWS. No arrow goes in to the instance.</p>
+
+  <section class="player" aria-live="polite">
+    <div class="pills" role="tablist" id="pills"></div>
+    <div class="step-body" id="body"></div>
+    <div class="nav">
+      <button id="prev" type="button">Back</button>
+      <span class="count" id="count"></span>
+      <button id="next" type="button" class="primary">Next step</button>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="note">
+      <h2>Why you need no key or password</h2>
+      <p>SSH checks who you are on the instance. Session Manager checks who you are in IAM, before the instance does anything.</p>
+      <p>After IAM approves you, the agent starts the shell. The agent already runs as root, so the OS does not ask for a password. Your access is only as wide as your IAM policy.</p>
+    </div>
+    <div class="note">
+      <h2>What must be true</h2>
+      <ul>
+        <li>The SSM Agent runs on the instance. Many Amazon AMIs include it.</li>
+        <li>The instance role has <code>AmazonSSMManagedInstanceCore</code>.</li>
+        <li>The instance can reach <code>ssm</code>, <code>ssmmessages</code> and <code>ec2messages</code> on port 443, through a NAT gateway or VPC interface endpoints.</li>
+        <li>Your role allows <code>ssm:StartSession</code> on the instance.</li>
+        <li>Your laptop has the AWS CLI and the session-manager-plugin.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h2>A minimal policy for you</h2>
+<pre>{
+  "Effect": "Allow",
+  "Action": "ssm:StartSession",
+  "Resource": [
+    "arn:aws:ec2:*:*:instance/i-0abc123",
+    "arn:aws:ssm:*:*:document/SSM-SessionManagerRunShell"
+  ]
+},
+{
+  "Effect": "Allow",
+  "Action": "ssm:TerminateSession",
+  "Resource": "arn:aws:ssm:*:*:session/${aws:userid}-*"
+}</pre>
+    </div>
+    <div class="note">
+      <h2>Other uses of the same tunnel</h2>
+      <p><strong>Port forwarding.</strong> <code>AWS-StartPortForwardingSession</code> sends a local port to a port on the instance. You can use it to reach a database, with no bastion host.</p>
+      <p><strong>SSH over SSM.</strong> <code>AWS-StartSSHSession</code> carries SSH through the relay. Here SSM only carries the bytes, so SSH still needs a key.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+const ALL = ["laptop","iam","ssmapi","relay","trail","ep","agent","shell","role",
+  "l-start","l-iam","l-notify","l-ws","l-log","l-reg","l-ctrl","l-data","l-pty",
+  "t-start","t-ws","t-reg","t-ctrl","t-data"];
+const STEPS = [
+  { name: "Agent starts", title: "Before you connect, the agent connects out",
+    on: ["agent","role","ep","ssmapi","relay","l-reg","l-ctrl","t-reg","t-ctrl"],
+    text: ["The SSM Agent starts on the instance. It uses the instance role to sign its requests to AWS.",
+           "The agent opens outbound HTTPS connections. It registers with Systems Manager and keeps a control channel open to the Session Manager relay. The connections go through the NAT gateway or the VPC endpoints. The security group needs no inbound rule."] },
+  { name: "You sign in", title: "You get temporary credentials for your role",
+    on: ["laptop"],
+    text: ["You sign in, for example with <code>aws sso login</code> or <code>aws sts assume-role</code>. The CLI keeps temporary credentials for your IAM role on your laptop.",
+           "These credentials are not SSH keys. The instance never sees them, and they expire after a short time."] },
+  { name: "StartSession", title: "You ask for a session, and IAM checks the policy",
+    on: ["laptop","ssmapi","iam","l-start","l-iam","t-start"],
+    text: ["<code>aws ssm start-session --target i-0abc123</code> sends a StartSession request over HTTPS. The CLI signs the request with your credentials (SigV4).",
+           "IAM checks your policy: does your role allow <code>ssm:StartSession</code> on this instance? If not, the request stops here. This check is the only login."] },
+  { name: "Agent is told", title: "SSM tells the agent on the channel the agent opened",
+    on: ["ssmapi","relay","agent","l-notify","l-ctrl","l-data","t-ctrl","t-data"],
+    text: ["SSM sends a message on the control channel. AWS does not open a connection to the instance. It answers on a connection that the instance opened in step 1.",
+           "The agent then opens a second outbound WebSocket, the data channel, to the relay."] },
+  { name: "Ends join", title: "Your laptop and the agent meet at the relay",
+    on: ["laptop","relay","agent","l-ws","l-data","t-ws","t-data"],
+    text: ["SSM gives the CLI a stream URL and a token. The session-manager-plugin opens a WebSocket to the relay with that token.",
+           "The relay joins your WebSocket to the agent's data channel. TLS encrypts both sides. You can also turn on KMS encryption for session data."] },
+  { name: "Shell runs", title: "The agent starts the shell, and AWS records it",
+    on: ["laptop","relay","agent","shell","trail","l-ws","l-data","l-pty","l-log","t-ws","t-data"],
+    text: ["The agent starts a shell as <code>ssm-user</code>, or as the Run As user that you set. The agent runs as root, so the OS does not ask for a password.",
+           "Your keystrokes go from the laptop to the relay, then to the agent, then to the shell. The output goes back on the same path. CloudTrail records the StartSession call. You can also send the session output to S3 or CloudWatch Logs."] }
+];
+let cur = 0;
+const pills = document.getElementById("pills");
+STEPS.forEach((s, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "pill"; b.id = "pill-" + i; b.setAttribute("role", "tab");
+  b.innerHTML = "<b>" + (i + 1) + "</b>" + s.name;
+  b.addEventListener("click", () => show(i));
+  pills.appendChild(b);
+});
+function show(i) {
+  cur = i;
+  const s = STEPS[i];
+  ALL.forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    const on = s.on.includes(id);
+    el.classList.toggle("on", on);
+    if (el.tagName === "path") el.setAttribute("marker-end", on ? "url(#arrOn)" : "url(#arr)");
+  });
+  document.getElementById("body").innerHTML = "<h3>" + s.title + "</h3>" + s.text.map(t => "<p>" + t + "</p>").join("");
+  document.querySelectorAll(".pill").forEach((p, j) => { if (j === i) p.setAttribute("aria-current", "step"); else p.removeAttribute("aria-current"); });
+  document.getElementById("count").textContent = "Step " + (i + 1) + " of " + STEPS.length;
+  document.getElementById("prev").disabled = i === 0;
+  document.getElementById("next").textContent = i === STEPS.length - 1 ? "Start again" : "Next step";
+}
+// second marker for active arrows
+const defs = document.querySelector("svg defs");
+const m = document.getElementById("arr").cloneNode(true);
+m.id = "arrOn"; m.querySelector("path").removeAttribute("id"); m.querySelector("path").classList.add("on");
+defs.appendChild(m);
+document.getElementById("arr").querySelector("path").removeAttribute("id");
+document.getElementById("prev").addEventListener("click", () => cur > 0 && show(cur - 1));
+document.getElementById("next").addEventListener("click", () => show((cur + 1) % STEPS.length));
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") show((cur + 1) % STEPS.length);
+  if (e.key === "ArrowLeft" && cur > 0) show(cur - 1);
+});
+show(0);
+</script>
+</body>
+</html>
