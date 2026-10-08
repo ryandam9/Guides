@@ -15,6 +15,7 @@ Technical guides and reference notes.
 
 - [Debugging Apache Oozie workflows on Amazon EMR](docs/oozie-emr-debugging.md)
 - [AWS SSM Session Manager explained (interactive)](docs/aws_ssm_explained_by_claude.html)
+- [AWS SSM Session Manager explained by GPT (interactive)](docs/aws_ssm_explained_by_gpt.html)
 
 ## Security
 
