@@ -1,0 +1,176 @@
+# Ghostty configuration (macOS)
+# ─────────────────────────────
+# Copy (or symlink) this file to:
+#   ~/.config/ghostty/config
+#   (or ~/Library/Application Support/com.mitchellh.ghostty/config)
+#
+# Reload with cmd+shift+, — no restart needed for most options.
+# Window/titlebar options need a new window.
+
+# ── Theme ────────────────────────────────────────────────────────────────
+# Always dark, with a cool blue-black background (#1a1b26).
+# Browse all ~400 built-in themes interactively with:  ghostty +list-themes
+theme = TokyoNight Night
+
+# Other excellent cool/dark themes to try (swap into the line above):
+#   Catppuccin Mocha · Rose Pine · Kanagawa Wave · Nord · Challenger Deep
+#
+# Want it even darker? An explicit background overrides the theme's:
+# background = #0d0e14
+#
+# To follow the OS appearance instead (light by day, dark by night):
+# theme = light:Catppuccin Latte,dark:TokyoNight Night
+
+# ── Font ─────────────────────────────────────────────────────────────────
+# Ghostty bundles Nerd Font symbols, so a plain font gets icons for free —
+# no patched "Nerd Font" build required.
+font-family = JetBrains Mono
+font-size = 13
+
+# A touch more line spacing makes text much easier to read.
+adjust-cell-height = 10%
+
+# macOS renders thin fonts; this restores the weight other platforms show.
+font-thicken = true
+
+# JetBrains Mono ligatures (=>, !=, ->) are on by default.
+# To turn them off, uncomment:
+# font-feature = -calt
+# font-feature = -liga
+# font-feature = -dlig
+
+# ── Background: frosted-glass look ───────────────────────────────────────
+background-opacity = 0.92
+background-blur = 20
+
+# Keep cell backgrounds (e.g. in vim/htop) solid so only the window base
+# is translucent — looks cleaner than blurring everything.
+background-opacity-cells = false
+
+# Guarantee text stays readable no matter what colors a program picks.
+minimum-contrast = 1.1
+
+# Slightly fade splits that don't have focus.
+unfocused-split-opacity = 0.85
+
+# Color the split divider + the fade overlay to match the theme:
+# split-divider-color = #3b4261
+# unfocused-split-fill = #16161e
+
+# Render bold text with the bright palette variant — makes bold pop:
+# bold-color = bright
+
+# Wallpaper *inside* the terminal (very dim so text stays readable):
+# background-image = ~/Pictures/wallpaper.jpg
+# background-image-opacity = 0.08
+# background-image-fit = cover
+
+# ── Window ───────────────────────────────────────────────────────────────
+window-padding-x = 12
+window-padding-y = 12
+window-padding-balance = true
+# When a program paints the screen edge-to-edge, extend its colors into the
+# padding instead of showing a hard border.
+window-padding-color = extend
+
+# Remember window size/position across restarts.
+window-save-state = always
+
+# Nicer default size for new windows.
+window-height = 32
+window-width = 120
+
+# ── Cursor ───────────────────────────────────────────────────────────────
+cursor-style = block
+cursor-style-blink = false
+# Click while holding alt/option to move the prompt cursor to that spot
+# (needs shell integration, which is on by default).
+cursor-click-to-move = true
+# Force a cursor color regardless of theme (Tokyonight blue):
+# cursor-color = #7aa2f7
+# Slightly see-through cursor so it never hides the glyph under it:
+# cursor-opacity = 0.85
+
+# ── Mouse & clipboard ────────────────────────────────────────────────────
+mouse-hide-while-typing = true
+copy-on-select = clipboard
+clipboard-paste-protection = true
+clipboard-trim-trailing-spaces = true
+
+# ── Shell integration ────────────────────────────────────────────────────
+# Auto-detected for bash/zsh/fish. Extras:
+#   cursor  – bar cursor at the prompt, block elsewhere
+#   sudo    – sudo keeps terminfo working
+#   title   – window title tracks command/directory
+shell-integration-features = cursor,sudo,title
+
+# ── Scrollback ───────────────────────────────────────────────────────────
+# 64 MB of scrollback (per terminal), in bytes. (Ghostty 1.4 renames this
+# to `scrollback-limit-bytes`, but the old name keeps working there too.)
+scrollback-limit = 67108864
+
+# ── macOS polish ─────────────────────────────────────────────────────────
+# Tabs live inside the titlebar — maximum screen space, very clean.
+macos-titlebar-style = tabs
+# Right Option stays Option (for # € etc.), left becomes Alt for the shell.
+macos-option-as-alt = left
+# Wider color gamut on modern Apple displays.
+window-colorspace = display-p3
+# Tint the Dock icon to match Tokyonight (pure fun — needs app restart).
+macos-icon = custom-style
+macos-icon-ghost-color = #7aa2f7
+macos-icon-screen-color = #1a1b26
+# Fast fullscreen without creating a macOS Space:
+# macos-non-native-fullscreen = true
+
+# ── Quick terminal: drop-down from the top of the screen ─────────────────
+quick-terminal-position = top
+# Works system-wide (grant Accessibility permission when prompted).
+keybind = global:cmd+grave_accent=toggle_quick_terminal
+# Snappier slide-in (seconds):
+# quick-terminal-animation-duration = 0.15
+
+# ── Fine tuning (all optional) ───────────────────────────────────────────
+# Crisper glyph edges; try it and keep whichever you prefer:
+# alpha-blending = linear-corrected
+# Bell: bounce the Dock icon, mark the tab title, flash a border:
+# bell-features = attention, title, border
+# Faster wheel scrolling:
+# mouse-scroll-multiplier = 2
+# Different font for the window/tab titles:
+# window-title-font-family = SF Pro
+
+# ── Extra keybinds ───────────────────────────────────────────────────────
+# Ghostty's defaults already cover splits/tabs (cmd+d, cmd+shift+d, cmd+t).
+# A nice addition:
+keybind = cmd+shift+r=reload_config
+
+# Keybind sequences (leader keys, tmux-style): press cmd+s, release, then
+# the second key. `>` chains the keys:
+# keybind = cmd+s>d=new_split:right
+# keybind = cmd+s>shift+d=new_split:down
+# keybind = cmd+s>z=toggle_split_zoom
+# keybind = cmd+s>e=equalize_splits
+#
+# Other useful prefixes:
+#   global:      works system-wide, even when Ghostty isn't focused (macOS)
+#   performable: only consumes the key when the action can actually run
+#   all:         applies to every terminal surface, not just the focused one
+#   unconsumed:  runs the action AND still sends the key to the program
+
+# ── Command palette (cmd+shift+p) custom entries ─────────────────────────
+# Add your own actions to the built-in palette:
+# command-palette-entry = title:Reset Font Style, action:csi:0m
+# command-palette-entry = title:"Ghost", description:"Summon a ghost", action:"text:\xf0\x9f\x91\xbb"
+
+# ── Custom shaders (optional eye candy) ──────────────────────────────────
+# Ghostty runs Shadertoy-style GLSL shaders over the terminal: animated
+# cursor trails, bloom/glow, CRT curvature. Multiple custom-shader lines
+# stack. Get shaders with:  scripts/ghostty/get-shaders.sh
+# then uncomment (paths are relative to this config file):
+#
+# custom-shader = shaders/ghostty-shaders/bloom.glsl
+# custom-shader = shaders/ghostty-cursor-shaders/<pick-one>.glsl
+#
+# Cursor-trail shaders animate outside of typing, so they need `always`:
+# custom-shader-animation = always
