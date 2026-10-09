@@ -211,6 +211,27 @@
   .troubleshoot{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:15px}
   .trouble{padding:18px;border-radius:13px;border:1px solid #dfe6f0;background:#fff}
   .trouble b{font-size:15px}.trouble p{font-size:13px;color:#42536c;margin:8px 0 0}
+  .scan-case{margin-top:22px;padding:20px;border:1px solid #dfe6f0;border-radius:15px;background:#fff}
+  .scan-case-head{display:flex;gap:14px;align-items:flex-start}
+  .scan-case-head h3{margin:2px 0 4px;font-size:18px;letter-spacing:-.3px}
+  .scan-task{margin:0;font-size:14px;color:#42536c}
+  .scan-why{font-size:14px;color:#334563;margin:12px 0 0}
+  .scan-label{font-size:12px;font-weight:850;letter-spacing:.5px;color:#5b6b87;margin:14px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .region-hit{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:12px}
+  .region-hit i{font-style:normal;text-align:center;padding:8px 4px;border-radius:9px;border:1px dashed #cbd5e1;color:#94a3b8;font-weight:850;font-size:13px;background:#f8fafc}
+  .region-hit i small{display:block;font-weight:600;font-size:11px}
+  .region-hit i.on{background:#0b8a6f;border:1px solid #0b8a6f;color:#fff}
+  .scan-result{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .scan-result span{background:#eef3fd;border:1px solid #d5ddec;border-radius:999px;padding:4px 11px;font-size:12px;color:#24365a}
+  .scan-result span.good{background:#eafaf2;border-color:#bfe8d4;color:#075a48}
+  .scan-result span.bad{background:#fdeeee;border-color:#f3c9c9;color:#8a2424}
+  .scan-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px}
+  .scan-table th{background:#1e2c4a;color:#fff;text-align:left;font-size:11px;letter-spacing:.5px;padding:10px 12px}
+  .scan-table td{padding:9px 12px;border-bottom:1px solid #e5eaf4;color:#334563;vertical-align:top}
+  .scan-table tbody tr:nth-child(even){background:#f6f8fc}
+  .scan-table code{overflow-wrap:anywhere}
+  .map-wrap .scan-table{min-width:640px}
+  @media(max-width:600px){.scan-case{padding:14px}.scan-case-head{gap:10px}}
   @media(max-width:860px){.story-top{grid-template-columns:1fr}.region-task-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:600px){.facts{grid-template-columns:repeat(2,1fr)}.totals{grid-template-columns:1fr}.split-impact{grid-template-columns:1fr}.split-impact .change-arrow{transform:rotate(90deg)}.troubleshoot{grid-template-columns:1fr}.region-task .task-body{min-height:0}}
   @media print{.story-brief,.story-ask,.fact,.region-task,.total,.split-impact .before,.split-impact .after{print-color-adjust:exact;-webkit-print-color-adjust:exact}.story-top,.region-task-grid,.split-impact,.totals{break-inside:avoid}.example-table th{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
@@ -550,7 +571,7 @@ pre{tab-size:4;white-space:pre;max-width:100%}
 <div class="topbar">
 <div class="mark"><span aria-hidden="true" class="mark-icon">◈</span><span>VISUAL TECHNICAL GUIDE</span></div>
 <nav aria-label="Page sections" class="nav">
-<a href="#contents">Contents</a><a href="#architecture">Architecture</a><a href="#planning">Execution</a><a href="#distribution">Partitions</a><a href="#joins">Optimisation</a><a href="#hbase">HBase</a><a href="#example">Examples</a><a href="#performance">Performance</a><a href="#summary">Glossary</a>
+<a href="#contents">Contents</a><a href="#architecture">Architecture</a><a href="#planning">Execution</a><a href="#distribution">Partitions</a><a href="#joins">Optimisation</a><a href="#hbase">HBase</a><a href="#scans">Scans</a><a href="#example">Examples</a><a href="#performance">Performance</a><a href="#summary">Glossary</a>
 </nav>
 <button class="print-btn" onclick="window.print()" type="button">Print this guide ↗</button>
 </div>
@@ -583,7 +604,7 @@ pre{tab-size:4;white-space:pre;max-width:100%}
 <div><h2>HBase · distributed storage</h2><p>Keep rows by row-key range. Serve the rows through RegionServers.</p></div>
 </article>
 </div>
-<nav aria-labelledby="toc-heading" class="chapter-nav" id="contents"><div class="toc-heading"><div><span class="toc-eyebrow">GUIDE NAVIGATION · 15 CHAPTERS</span><h2 id="toc-heading">Table of contents</h2><p>Select a chapter to go to that section.</p></div><a class="toc-start" href="#data-api">Start with the PySpark example <span aria-hidden="true">↗</span></a></div><div class="toc-list"><a href="#architecture"><b>01</b>Application architecture and YARN</a><a href="#data-api"><b>02</b>DataFrames and APIs · START HERE</a><a href="#planning"><b>03</b>Plans and lazy work</a><a href="#spark"><b>04</b>Jobs, stages, tasks</a><a href="#distribution"><b>05</b>Partitions and shuffle</a><a href="#joins"><b>06</b>Joins and AQE</a><a href="#memory"><b>07</b>Memory and recovery</a><a href="#storage"><b>08</b>Files and tables</a><a href="#streaming"><b>09</b>Structured Streaming</a><a href="#monitoring"><b>10</b>Monitoring and tuning</a><a href="#hbase"><b>11</b>HBase concepts</a><a href="#together"><b>12</b>Spark + HBase</a><a href="#example"><b>13</b>Payment walkthrough</a><a href="#performance"><b>14</b>Bad vs better performance</a><a href="#summary"><b>15</b>Complete glossary</a></div></nav>
+<nav aria-labelledby="toc-heading" class="chapter-nav" id="contents"><div class="toc-heading"><div><span class="toc-eyebrow">GUIDE NAVIGATION · 16 CHAPTERS</span><h2 id="toc-heading">Table of contents</h2><p>Select a chapter to go to that section.</p></div><a class="toc-start" href="#data-api">Start with the PySpark example <span aria-hidden="true">↗</span></a></div><div class="toc-list"><a href="#architecture"><b>01</b>Application architecture and YARN</a><a href="#data-api"><b>02</b>DataFrames and APIs · START HERE</a><a href="#planning"><b>03</b>Plans and lazy work</a><a href="#spark"><b>04</b>Jobs, stages, tasks</a><a href="#distribution"><b>05</b>Partitions and shuffle</a><a href="#joins"><b>06</b>Joins and AQE</a><a href="#memory"><b>07</b>Memory and recovery</a><a href="#storage"><b>08</b>Files and tables</a><a href="#streaming"><b>09</b>Structured Streaming</a><a href="#monitoring"><b>10</b>Monitoring and tuning</a><a href="#hbase"><b>11</b>HBase concepts</a><a href="#together"><b>12</b>Spark + HBase</a><a href="#scans"><b>13</b>HBase scans from PySpark</a><a href="#example"><b>14</b>Payment walkthrough</a><a href="#performance"><b>15</b>Bad vs better performance</a><a href="#summary"><b>16</b>Complete glossary</a></div></nav>
 <aside aria-label="Version scope and example rules" class="version-panel">
 <div class="version-head"><div><span class="version-overline">VERSION SCOPE · CHECKED 04 OCT 2026</span><h2>Versions used in this guide</h2></div><span class="version-status">OFFICIAL RELEASE REFERENCES</span></div>
 <div class="version-grid">
@@ -641,7 +662,7 @@ schema = ("row_key STRING, merchant STRING, "
 payments_df = spark.createDataFrame(rows, schema)
 payments_df.printSchema()
 payments_df.show(truncate=False)
-</pre></div><div class="note green"><b>Run this first.</b> This synthetic dataset matches the eight rows in Chapter 13. It uses an in-memory DataFrame, so the example does not need HBase or S3. It does not reproduce HBase region placement or input splits.</div><p class="code-intro">DataFrame operations select the records and columns that you need. They do not change the source DataFrame.</p><div aria-label="PySpark example: select, filter, and create a column" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · SELECT, FILTER, AND CREATE A COLUMN<span class="code-version">Spark ≥ 3.5</span></div><pre># Use the eight sample rows above.
+</pre></div><div class="note green"><b>Run this first.</b> This synthetic dataset matches the eight rows in Chapter 14. It uses an in-memory DataFrame, so the example does not need HBase or S3. It does not reproduce HBase region placement or input splits.</div><p class="code-intro">DataFrame operations select the records and columns that you need. They do not change the source DataFrame.</p><div aria-label="PySpark example: select, filter, and create a column" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · SELECT, FILTER, AND CREATE A COLUMN<span class="code-version">Spark ≥ 3.5</span></div><pre># Use the eight sample rows above.
 large_success = (payments_df
     .filter((F.col("status") == "SUCCESS") &amp; (F.col("amount_aud") &gt;= 100))
     .select("row_key", "merchant", "amount_aud")
@@ -1007,8 +1028,228 @@ hbase_df = payments_df
 print("Local partitions:", hbase_df.rdd.getNumPartitions())  # set by local cores
 hbase_df.printSchema()
 </pre></div></section>
+<section aria-labelledby="scans-title" class="expanded-section" id="scans">
+<div class="section-head"><span class="section-num hbase-num">13 / HBASE SCANS</span><h2 id="scans-title">HBase scans from PySpark: worked examples</h2></div>
+<p class="section-intro">Each example below has a task, the PySpark code, and the measured result. The result shows the regions that HBase scanned, the rows that HBase read, and the rows that HBase sent to Spark.</p>
+<p class="version-inline">Tested on 9 October 2026 with HBase 2.5.16, Spark 3.5.9 (PySpark), and Apache hbase-connectors <code>hbase-spark</code> 1.0.1 on one machine. The row counts come from the RegionServer read metrics. Other connectors and versions can push down different filters.</p>
+<div class="concept-grid link-concepts">
+<article class="concept a"><span class="kicker">Reduces the read</span><h3>Start row and stop row</h3><p>HBase reads only the rows from the start row (included) to the stop row (not included). It does not open the other regions.</p></article>
+<article class="concept"><span class="kicker">Reduces the transfer</span><h3>Server-side filter</h3><p>HBase reads every row in the range. Then it sends only the rows that pass the filter. The disk work does not decrease.</p></article>
+<article class="concept"><span class="kicker">Reduces nothing in HBase</span><h3>Spark filter</h3><p>HBase sends every row in the range to Spark. Then Spark removes rows. Use this only on a small range.</p></article>
+</div>
+<div class="note amber"><b>The main rule:</b> First make the row-key range small. Then use filters to decrease the rows that HBase sends. A filter on a column value cannot replace a good row-key range.</div>
+<h3 class="subhead">The test table</h3>
+<p class="code-intro">The table is the <code>payments</code> table from Chapter 14. It has the same eight rows. The table has four regions, with split keys <code>01#</code>, <code>02#</code>, and <code>03#</code>. The HBase shell command below makes the table. The PySpark code writes the eight rows and defines a reader that the examples use.</p>
+<div aria-label="HBase shell: create the payments table" class="sample-code" role="region"><div class="code-top">HBASE SHELL · MAKE THE TABLE WITH FOUR REGIONS<span class="code-version">HBase 2.x</span></div><pre>create &#x27;payments&#x27;, &#x27;d&#x27;, SPLITS =&gt; [&#x27;01#&#x27;, &#x27;02#&#x27;, &#x27;03#&#x27;]
+</pre></div>
+<div aria-label="PySpark example: write sample rows and define the HBase reader" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · WRITE THE SAMPLE ROWS AND DEFINE THE READER · CLUSTER ONLY<span class="code-version">Spark ≥ 3.5</span></div><pre># spark-submit --jars hbase-spark-1.0.1.jar,hbase-spark-protocol-shaded-1.0.1.jar,&lt;HBase client jars&gt; \
+#   --files /etc/hbase/conf/hbase-site.xml scans.py
+from pyspark.sql import SparkSession, functions as F
+
+spark = SparkSession.builder.appName(&quot;hbase-scans&quot;).getOrCreate()
+
+MAPPING = (&quot;row_key STRING :key, merchant STRING d:merchant, &quot;
+           &quot;amount_aud STRING d:amount_aud, status STRING d:status&quot;)
+
+def read_payments(**options):
+    &quot;&quot;&quot;Return a DataFrame over the HBase payments table.&quot;&quot;&quot;
+    reader = (spark.read.format(&quot;org.apache.hadoop.hbase.spark&quot;)
+              .option(&quot;hbase.table&quot;, &quot;payments&quot;)
+              .option(&quot;hbase.columns.mapping&quot;, MAPPING)
+              .option(&quot;hbase.spark.use.hbasecontext&quot;, False))
+    for key, value in options.items():
+        reader = reader.option(key, value)
+    return reader.load()
+
+rows = [(&quot;00#TXN1001&quot;, &quot;Grocery&quot;, &quot;120&quot;, &quot;SUCCESS&quot;), (&quot;00#TXN1002&quot;, &quot;Travel&quot;, &quot;80&quot;, &quot;FAILED&quot;),
+        (&quot;01#TXN1003&quot;, &quot;Travel&quot;, &quot;250&quot;, &quot;SUCCESS&quot;), (&quot;01#TXN1004&quot;, &quot;Grocery&quot;, &quot;75&quot;, &quot;SUCCESS&quot;),
+        (&quot;02#TXN1005&quot;, &quot;Energy&quot;, &quot;110&quot;, &quot;SUCCESS&quot;), (&quot;02#TXN1006&quot;, &quot;Grocery&quot;, &quot;60&quot;, &quot;FAILED&quot;),
+        (&quot;03#TXN1007&quot;, &quot;Travel&quot;, &quot;300&quot;, &quot;SUCCESS&quot;), (&quot;03#TXN1008&quot;, &quot;Energy&quot;, &quot;40&quot;, &quot;SUCCESS&quot;)]
+sample = spark.createDataFrame(
+    rows, &quot;row_key string, merchant string, amount_aud string, status string&quot;)
+(sample.write.format(&quot;org.apache.hadoop.hbase.spark&quot;)
+    .option(&quot;hbase.table&quot;, &quot;payments&quot;)
+    .option(&quot;hbase.columns.mapping&quot;, MAPPING)
+    .option(&quot;hbase.spark.use.hbasecontext&quot;, False)
+    .save())
+
+payments = read_payments()
+</pre></div>
+<div class="note"><b>How to read the results:</b> The four boxes are the four regions. A dark box is a region that HBase scanned. “Rows read” counts the rows that the RegionServers read. “Rows sent” counts the rows that HBase sent to Spark. Spark makes one partition for each region range, or one for a group of single-row reads.</div>
+<h3 class="subhead">Part 1 · Row-key filters: these set the start row and stop row</h3>
+<p class="code-intro">The connector reads the comparisons on the column that you map to <code>:key</code>. It changes them into single-row reads (<code>Get</code>) or into scan ranges. Use these filters first.</p>
+<article class="scan-case" id="scan-ex-1"><div class="scan-case-head"><span class="perf-number">01</span><div><h3>Read one payment by its row key</h3><p class="scan-task"><b>Task.</b> Show payment <code>01#TXN1003</code>.</p></div></div><div aria-label="PySpark example: read one row by key" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · ONE ROW KEY<span class="code-version">Spark ≥ 3.5</span></div><pre>one = payments.filter(F.col(&quot;row_key&quot;) == &quot;01#TXN1003&quot;)
+one.show()
+</pre></div><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="">R1<small>start–01#</small></i><i class="on">R2<small>01#–02#</small></i><i class="">R3<small>02#–03#</small></i><i class="">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>1 of 4</b></span><span class="good">Rows read in HBase: <b>1 of 8</b></span><span>Rows sent to Spark: <b>1</b></span><span>Spark partitions: <b>1</b></span></div><p class="scan-why">An equality test on the row key becomes an HBase <code>Get</code>. HBase goes directly to the row. It does not scan.</p></article>
+<article class="scan-case" id="scan-ex-2"><div class="scan-case-head"><span class="perf-number">02</span><div><h3>Set the start row and the stop row</h3><p class="scan-task"><b>Task.</b> Read all payments in salt bucket <code>01#</code>.</p></div></div><div aria-label="PySpark example: start and stop row" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · START ROW AND STOP ROW<span class="code-version">Spark ≥ 3.5</span></div><pre># Start row &quot;01#&quot; is included. Stop row &quot;02#&quot; is not included.
+bucket_01 = payments.filter(
+    (F.col(&quot;row_key&quot;) &gt;= &quot;01#&quot;) &amp; (F.col(&quot;row_key&quot;) &lt; &quot;02#&quot;))
+bucket_01.show()
+</pre></div><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="">R1<small>start–01#</small></i><i class="on">R2<small>01#–02#</small></i><i class="">R3<small>02#–03#</small></i><i class="">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>1 of 4</b></span><span class="good">Rows read in HBase: <b>2 of 8</b></span><span>Rows sent to Spark: <b>2</b></span><span>Spark partitions: <b>1</b></span></div><p class="scan-why"><code>&gt;=</code> sets the start row. <code>&lt;</code> sets the stop row. Use <code>&lt;=</code> when the last key must be included. HBase opens only region R2.</p></article>
+<article class="scan-case" id="scan-ex-3"><div class="scan-case-head"><span class="perf-number">03</span><div><h3>Read all rows that start with a prefix</h3><p class="scan-task"><b>Task.</b> Read all payments in salt bucket <code>02#</code>, and read a key range that crosses two regions.</p></div></div><div aria-label="PySpark example: prefix and between" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · PREFIX AND BETWEEN<span class="code-version">Spark ≥ 3.5</span></div><pre># startswith() becomes the range [&quot;02#&quot;, &quot;02$&quot;).
+bucket_02 = payments.filter(F.col(&quot;row_key&quot;).startswith(&quot;02#&quot;))
+
+# between() includes both ends.
+crossing = payments.filter(F.col(&quot;row_key&quot;).between(&quot;01#TXN1004&quot;, &quot;02#TXN1005&quot;))
+</pre></div><p class="scan-label">startswith("02#")</p><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="">R1<small>start–01#</small></i><i class="">R2<small>01#–02#</small></i><i class="on">R3<small>02#–03#</small></i><i class="">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>1 of 4</b></span><span class="good">Rows read in HBase: <b>2 of 8</b></span><span>Rows sent to Spark: <b>2</b></span><span>Spark partitions: <b>1</b></span></div><p class="scan-label">between("01#TXN1004", "02#TXN1005")</p><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="">R1<small>start–01#</small></i><i class="on">R2<small>01#–02#</small></i><i class="on">R3<small>02#–03#</small></i><i class="">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>2 of 4</b></span><span class="good">Rows read in HBase: <b>2 of 8</b></span><span>Rows sent to Spark: <b>2</b></span><span>Spark partitions: <b>2</b></span></div><p class="scan-why">Both filters became scan ranges in this test. A prefix filter is a good choice when your row key starts with the value that you know. Put the most-used search value at the start of the row key.</p></article>
+<article class="scan-case" id="scan-ex-4"><div class="scan-case-head"><span class="perf-number">04</span><div><h3>Read several key ranges or keys (OR)</h3><p class="scan-task"><b>Task.</b> Read two separate ranges. Then read a list of payment keys.</p></div></div><div aria-label="PySpark example: OR of key ranges" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · OR OF KEY RANGES AND OR OF KEYS<span class="code-version">Spark ≥ 3.5</span></div><pre>from functools import reduce
+
+# Two ranges: one row in bucket 00#, and the start of bucket 03#.
+ranges = [(&quot;00#TXN1002&quot;, &quot;00#TXN1002&quot;), (&quot;03#&quot;, &quot;03#TXN1008&quot;)]
+two_ranges = payments.filter(
+    ((F.col(&quot;row_key&quot;) &gt;= ranges[0][0]) &amp; (F.col(&quot;row_key&quot;) &lt;= ranges[0][1]))
+    | ((F.col(&quot;row_key&quot;) &gt;= ranges[1][0]) &amp; (F.col(&quot;row_key&quot;) &lt; ranges[1][1])))
+
+# A list of keys: write it as an OR of equality tests, not as isin().
+keys = [&quot;01#TXN1003&quot;, &quot;03#TXN1007&quot;]
+some_keys = payments.filter(
+    reduce(lambda a, b: a | b, [F.col(&quot;row_key&quot;) == k for k in keys]))
+</pre></div><p class="scan-label">Two ranges</p><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="on">R1<small>start–01#</small></i><i class="">R2<small>01#–02#</small></i><i class="">R3<small>02#–03#</small></i><i class="on">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>2 of 4</b></span><span class="good">Rows read in HBase: <b>2 of 8</b></span><span>Rows sent to Spark: <b>2</b></span><span>Spark partitions: <b>2</b></span></div><p class="scan-label">OR of two equality tests</p><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="">R1<small>start–01#</small></i><i class="on">R2<small>01#–02#</small></i><i class="">R3<small>02#–03#</small></i><i class="on">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>2 of 4</b></span><span class="good">Rows read in HBase: <b>2 of 8</b></span><span>Rows sent to Spark: <b>2</b></span><span>Spark partitions: <b>2</b></span></div><p class="scan-why">An OR of row-key tests becomes one scan or <code>Get</code> for each part. HBase does not read the rows between the parts. Use this for salt buckets: make one range for each bucket, then join the ranges with <code>|</code>. Example 08 shows that <code>isin()</code> did not become key reads.</p></article>
+<h3 class="subhead">Part 2 · Column-value filters: these decrease the rows that HBase sends</h3>
+<p class="code-intro">The connector sends comparisons on other mapped columns to the RegionServers as a server-side filter (<code>SparkSQLPushDownFilter</code>). The option <code>hbase.spark.pushdown.columnfilter</code> controls this. Its default value is <code>true</code>.</p>
+<div class="note amber"><b>Install the connector on the RegionServers first.</b> A server-side filter runs inside the RegionServer. The RegionServer must have <code>hbase-spark</code>, <code>hbase-spark-protocol-shaded</code>, and the Scala 2.12 library on its classpath. Without them, every filtered read fails with <code>ClassNotFoundException: org.apache.hadoop.hbase.spark.SparkSQLPushDownFilter</code>. This error also occurred for a filter on the row key only. If you cannot change the RegionServers, set <code>hbase.spark.pushdown.columnfilter</code> to <code>False</code>. The row-key ranges in Part 1 still work.</div>
+<article class="scan-case" id="scan-ex-5"><div class="scan-case-head"><span class="perf-number">05</span><div><h3>Filter on a column value only</h3><p class="scan-task"><b>Task.</b> Find all failed payments.</p></div></div><div aria-label="PySpark example: value filter" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · VALUE FILTER, WITH AND WITHOUT PUSHDOWN<span class="code-version">Spark ≥ 3.5</span></div><pre>failed = payments.filter(F.col(&quot;status&quot;) == &quot;FAILED&quot;)
+
+# The same filter when the RegionServers do not have the connector jars:
+no_pushdown = read_payments(**{&quot;hbase.spark.pushdown.columnfilter&quot;: False})
+failed_in_spark = no_pushdown.filter(F.col(&quot;status&quot;) == &quot;FAILED&quot;)
+</pre></div><p class="scan-label">Pushdown on (default)</p><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="on">R1<small>start–01#</small></i><i class="on">R2<small>01#–02#</small></i><i class="on">R3<small>02#–03#</small></i><i class="on">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>4 of 4</b></span><span class="bad">Rows read in HBase: <b>8 of 8</b></span><span>Rows sent to Spark: <b>2</b></span><span>Spark partitions: <b>4</b></span></div><p class="scan-label">Pushdown off</p><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="on">R1<small>start–01#</small></i><i class="on">R2<small>01#–02#</small></i><i class="on">R3<small>02#–03#</small></i><i class="on">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>4 of 4</b></span><span class="bad">Rows read in HBase: <b>8 of 8</b></span><span>Rows sent to Spark: <b>8</b></span><span>Spark partitions: <b>4</b></span></div><p class="scan-why">The row key does not contain the status. So HBase must read every row in every region. With pushdown, HBase sends only the 2 failed rows. Without pushdown, HBase sends all 8 rows and Spark removes 6. On a large table, a filter on a value only is a full table scan.</p></article>
+<article class="scan-case" id="scan-ex-6"><div class="scan-case-head"><span class="perf-number">06</span><div><h3>Row-key range AND column value</h3><p class="scan-task"><b>Task.</b> Find the successful payments in buckets <code>01#</code> and <code>02#</code>.</p></div></div><div aria-label="PySpark example: key range AND value" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · KEY RANGE AND VALUE (AND)<span class="code-version">Spark ≥ 3.5</span></div><pre>ok_01_02 = payments.filter(
+    (F.col(&quot;row_key&quot;) &gt;= &quot;01#&quot;) &amp; (F.col(&quot;row_key&quot;) &lt; &quot;03#&quot;)
+    &amp; (F.col(&quot;status&quot;) == &quot;SUCCESS&quot;))
+ok_01_02.explain()
+# PushedFilters: [IsNotNull(status), LessThan(row_key,03#),
+#                 GreaterThanOrEqual(row_key,01#), EqualTo(status,SUCCESS)]
+</pre></div><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="">R1<small>start–01#</small></i><i class="on">R2<small>01#–02#</small></i><i class="on">R3<small>02#–03#</small></i><i class="">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>2 of 4</b></span><span class="good">Rows read in HBase: <b>4 of 8</b></span><span>Rows sent to Spark: <b>3</b></span><span>Spark partitions: <b>2</b></span></div><p class="scan-why">This is the best pattern. The key range sets the start row and stop row, so HBase reads only 4 rows. The status filter runs in the RegionServer, so HBase sends only 3 rows. <b>AND makes the read smaller. Use AND when you can.</b></p></article>
+<article class="scan-case" id="scan-ex-7"><div class="scan-case-head"><span class="perf-number">07</span><div><h3>Row-key range OR column value</h3><p class="scan-task"><b>Task.</b> Find the payments in bucket <code>00#</code>, and all failed payments.</p></div></div><div aria-label="PySpark example: key range OR value" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · KEY RANGE OR VALUE (OR)<span class="code-version">Spark ≥ 3.5</span></div><pre>mixed = payments.filter(
+    (F.col(&quot;row_key&quot;) &lt; &quot;01#&quot;) | (F.col(&quot;status&quot;) == &quot;FAILED&quot;))
+
+# Better on a large table: two narrow reads, then a union.
+bucket_00 = payments.filter(F.col(&quot;row_key&quot;) &lt; &quot;01#&quot;)
+failed = payments.filter(F.col(&quot;status&quot;) == &quot;FAILED&quot;)   # still a full scan
+mixed_better = bucket_00.unionByName(failed).dropDuplicates([&quot;row_key&quot;])
+</pre></div><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="on">R1<small>start–01#</small></i><i class="on">R2<small>01#–02#</small></i><i class="on">R3<small>02#–03#</small></i><i class="on">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>4 of 4</b></span><span class="bad">Rows read in HBase: <b>8 of 8</b></span><span>Rows sent to Spark: <b>3</b></span><span>Spark partitions: <b>4</b></span></div><p class="scan-why">A failed payment can be in any region. So the key range cannot limit the scan, and HBase reads every row. <b>An OR between a row-key test and a value test always becomes a full table scan.</b> An OR of value tests only (for example <code>merchant == "Energy" | status == "FAILED"</code>) is also a full scan, but the RegionServers apply it.</p></article>
+<article class="scan-case" id="scan-ex-8"><div class="scan-case-head"><span class="perf-number">08</span><div><h3>Filters that HBase does not receive</h3><p class="scan-task"><b>Task.</b> Know which filters cause a full read with no server-side filter.</p></div></div><div aria-label="PySpark example: filters that do not push down" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · FILTERS THAT SPARK APPLIES AFTER THE READ<span class="code-version">Spark ≥ 3.5</span></div><pre>payments.filter(F.col(&quot;row_key&quot;).isin(&quot;01#TXN1003&quot;, &quot;03#TXN1007&quot;))  # use example 04
+payments.filter(F.col(&quot;row_key&quot;).like(&quot;%TXN1005&quot;))                  # key suffix
+payments.filter(F.col(&quot;status&quot;) != &quot;SUCCESS&quot;)                       # not equal
+payments.filter(~F.col(&quot;row_key&quot;).startswith(&quot;00#&quot;))                # NOT prefix
+payments.filter(F.col(&quot;amount_aud&quot;).cast(&quot;int&quot;) &gt; 100)              # function on a column
+</pre></div><div aria-label="Regions that HBase scans" class="region-hit" role="img"><i class="on">R1<small>start–01#</small></i><i class="on">R2<small>01#–02#</small></i><i class="on">R3<small>02#–03#</small></i><i class="on">R4<small>03#–end</small></i></div><div class="scan-result"><span>Regions scanned: <b>4 of 4</b></span><span class="bad">Rows read in HBase: <b>8 of 8</b></span><span>Rows sent to Spark: <b>8</b></span><span>Spark partitions: <b>4</b></span></div><p class="scan-why">All five filters gave the same result: a full read, and all 8 rows sent to Spark. Spark then removed the rows. <code>explain()</code> can show some of these filters in <code>PushedFilters</code>. That does not prove that HBase used them. Measure the RegionServer read requests.</p><div class="note"><b>Rewrites:</b> Change <code>isin()</code> to an OR of <code>==</code> tests (example 04). Change <code>!= "SUCCESS"</code> to <code>== "FAILED"</code> when the value list is known. Change “NOT prefix” to two ranges: <code>&lt; "00#"</code> OR <code>&gt;= "01#"</code>. A key suffix search needs a different row-key design.</div></article>
+<article class="scan-case" id="scan-ex-9"><div class="scan-case-head"><span class="perf-number">09</span><div><h3>Compare numbers that HBase keeps as text</h3><p class="scan-task"><b>Task.</b> Find payments with an amount greater than 100 AUD.</p></div></div><div aria-label="PySpark example: string comparison trap" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · THE TEXT-COMPARISON TRAP<span class="code-version">Spark ≥ 3.5</span></div><pre># Wrong: amount_aud is a STRING, so this compares text.
+# &quot;80&quot; &gt; &quot;100&quot; is True, because &quot;8&quot; &gt; &quot;1&quot;.
+wrong = payments.filter(F.col(&quot;amount_aud&quot;) &gt; &quot;100&quot;)      # returns all 8 rows
+
+# Correct: cast first. Spark applies this filter after the read.
+right = payments.filter(F.col(&quot;amount_aud&quot;).cast(&quot;int&quot;) &gt; 100)  # 4 rows
+</pre></div><table class="scan-table"><thead><tr><th>Filter</th><th>Rows returned</th><th>Correct?</th></tr></thead><tbody><tr><td><code>amount_aud &gt; "100"</code></td><td>8 (includes 80, 75, 60, 40)</td><td><span class="status-no">NO</span></td></tr><tr><td><code>amount_aud.cast("int") &gt; 100</code></td><td>4 (120, 250, 110, 300)</td><td><span class="status-ok">YES</span></td></tr></tbody></table><p class="scan-why">HBase compares bytes, not numbers. A value that the application writes as text sorts as text. A cast gives the correct answer, but HBase cannot apply it. If you must filter numbers in HBase, write them as fixed-width text (for example <code>000080</code>) or as sortable binary values.</p></article>
+<article class="scan-case" id="scan-ex-10"><div class="scan-case-head"><span class="perf-number">10</span><div><h3>Tune the scan</h3><p class="scan-task"><b>Task.</b> Read a large range quickly, without damage to the RegionServer cache.</p></div></div><div aria-label="PySpark example: scan tuning options" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · SCAN OPTIONS<span class="code-version">Spark ≥ 3.5</span></div><pre>import time
+now_ms = int(time.time() * 1000)
+tuned = read_payments(**{
+    &quot;hbase.spark.query.cachedrows&quot;: &quot;1000&quot;,        # rows in each RPC
+    &quot;hbase.spark.query.cacheblocks&quot;: &quot;false&quot;,      # do not fill the block cache
+    &quot;hbase.spark.query.timerange.start&quot;: str(now_ms - 7 * 86_400_000),
+    &quot;hbase.spark.query.timerange.end&quot;: str(now_ms),  # only cells from the last 7 days
+})
+recent_03 = tuned.filter(F.col(&quot;row_key&quot;).startswith(&quot;03#&quot;))
+</pre></div><table class="scan-table"><thead><tr><th>Option</th><th>Effect</th><th>When to use it</th></tr></thead><tbody><tr><td><code>hbase.spark.query.cachedrows</code></td><td>Rows that HBase sends in one RPC.</td><td>Large scans. More rows = fewer RPCs, but more memory in the executor.</td></tr><tr><td><code>hbase.spark.query.batchsize</code></td><td>Maximum cells in one result.</td><td>Very wide rows.</td></tr><tr><td><code>hbase.spark.query.cacheblocks</code></td><td><code>false</code> keeps the scan out of the block cache.</td><td>Large batch scans. Online reads keep their cache.</td></tr><tr><td><code>hbase.spark.query.timerange.start</code> / <code>.end</code></td><td>Only cells with a timestamp in the range.</td><td>Incremental jobs. HBase can skip store files outside the range.</td></tr><tr><td><code>hbase.spark.query.maxVersions</code></td><td>Cell versions to read.</td><td>History tables.</td></tr></tbody></table><p class="scan-why">A time range uses the HBase cell timestamp. That is the write time, not a business date in your data. In the test, a time range of 0 to 1000 ms returned 0 rows.</p></article>
+<h3 class="subhead">Part 3 · HBase filters that the DataFrame reader cannot make</h3>
+<p class="code-intro">Some HBase filters have no DataFrame form: <code>MultiRowRangeFilter</code>, <code>FuzzyRowFilter</code>, <code>FilterList</code>, and <code>SingleColumnValueFilter</code> options. From PySpark, you can run them on the driver through the Spark JVM gateway. Use this for small results only, such as a lookup or a test of a filter. The driver reads every row, so it does not run in parallel.</p>
+<div aria-label="PySpark example: native HBase scan helper" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · NATIVE HBASE SCAN ON THE DRIVER · CLUSTER ONLY<span class="code-version">Spark ≥ 3.5</span></div><pre>hb   = spark._jvm.org.apache.hadoop.hbase
+B    = hb.util.Bytes
+flt  = hb.filter
+conn = hb.client.ConnectionFactory.createConnection(hb.HBaseConfiguration.create())
+
+def native_scan(scan, table=&quot;payments&quot;, max_rows=1000):
+    &quot;&quot;&quot;Run one HBase Scan on the driver. Return a list of dicts.&quot;&quot;&quot;
+    out, t = [], conn.getTable(hb.TableName.valueOf(table))
+    scanner = t.getScanner(scan)
+    try:
+        result = scanner.next()
+        while result is not None and len(out) &lt; max_rows:
+            row = {&quot;row_key&quot;: B.toString(result.getRow())}
+            for cell in result.rawCells():
+                row[B.toString(hb.CellUtil.cloneQualifier(cell))] = \
+                    B.toString(hb.CellUtil.cloneValue(cell))
+            out.append(row)
+            result = scanner.next()
+    finally:
+        scanner.close()
+        t.close()
+    return out
+</pre></div>
+<article class="scan-case" id="scan-ex-11"><div class="scan-case-head"><span class="perf-number">11</span><div><h3>AND and OR with FilterList</h3><p class="scan-task"><b>Task.</b> In buckets <code>01#</code> and <code>02#</code>, find successful payments for Energy or Travel.</p></div></div><div aria-label="PySpark example: FilterList AND and OR" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · FILTERLIST: MUST_PASS_ALL (AND) AND MUST_PASS_ONE (OR)<span class="code-version">Spark ≥ 3.5</span></div><pre>EQ = hb.CompareOperator.EQUAL
+
+def column_equals(qualifier, value):
+    f = flt.SingleColumnValueFilter(B.toBytes(&quot;d&quot;), B.toBytes(qualifier),
+                                    EQ, B.toBytes(value))
+    f.setFilterIfMissing(True)   # drop rows that do not have the column
+    return f
+
+energy_or_travel = flt.FilterList(flt.FilterList.Operator.MUST_PASS_ONE,      # OR
+    [column_equals(&quot;merchant&quot;, &quot;Energy&quot;), column_equals(&quot;merchant&quot;, &quot;Travel&quot;)])
+success_and_merchant = flt.FilterList(flt.FilterList.Operator.MUST_PASS_ALL,  # AND
+    [column_equals(&quot;status&quot;, &quot;SUCCESS&quot;), energy_or_travel])
+
+def make_scan():
+    # Make a new Scan for each run. The HBase client changes a Scan while it scans.
+    return (hb.client.Scan()
+            .withStartRow(B.toBytes(&quot;01#&quot;))        # start row, included
+            .withStopRow(B.toBytes(&quot;03#&quot;))         # stop row, not included
+            .addFamily(B.toBytes(&quot;d&quot;))
+            .setFilter(success_and_merchant)
+            .setCaching(500)
+            .setCacheBlocks(False))
+
+rows = native_scan(make_scan())
+spark.createDataFrame(rows).show()
+# 01#TXN1003  Travel  250  SUCCESS
+# 02#TXN1005  Energy  110  SUCCESS
+</pre></div><p class="scan-why"><code>MUST_PASS_ALL</code> is AND. <code>MUST_PASS_ONE</code> is OR. You can put a <code>FilterList</code> inside another <code>FilterList</code>. Put the cheapest and most selective filter first in an AND list. In the test, a second run with the same <code>Scan</code> object returned only 1 of the 2 rows. So always make a new <code>Scan</code>.</p></article>
+<article class="scan-case" id="scan-ex-12"><div class="scan-case-head"><span class="perf-number">12</span><div><h3>Several ranges and wildcard keys in one scan</h3><p class="scan-task"><b>Task.</b> Read two separate key ranges in one scan. Then find <code>TXN1005</code> in every salt bucket.</p></div></div><div aria-label="PySpark example: MultiRowRangeFilter and FuzzyRowFilter" class="sample-code" data-spark-min-version="3.5.0" role="region"><div class="code-top">PYSPARK · MULTIROWRANGEFILTER AND FUZZYROWFILTER<span class="code-version">Spark ≥ 3.5</span></div><pre>RowRange = flt.MultiRowRangeFilter.RowRange
+range_filter = flt.MultiRowRangeFilter([
+    RowRange(B.toBytes(&quot;00#TXN1002&quot;), True, B.toBytes(&quot;00#TXN1002&quot;), True),
+    RowRange(B.toBytes(&quot;03#&quot;), True, B.toBytes(&quot;03#TXN1008&quot;), False)])
+print(native_scan(hb.client.Scan().setFilter(range_filter)))
+# 00#TXN1002, 03#TXN1007
+
+# FuzzyRowFilter: &quot;?&quot; positions can have any byte. Mask 1 = any byte, 0 = must match.
+key  = B.toBytes(&quot;??#TXN1005&quot;)
+mask = bytes([1, 1] + [0] * 8)
+fuzzy = flt.FuzzyRowFilter([spark._jvm.org.apache.hadoop.hbase.util.Pair(key, mask)])
+print(native_scan(hb.client.Scan().setFilter(fuzzy)))
+# 02#TXN1005
+
+# Prefix scan: sets the start row and stop row for you.
+print(native_scan(hb.client.Scan().setStartStopRowForPrefixScan(B.toBytes(&quot;02#&quot;))))
+# 02#TXN1005, 02#TXN1006
+</pre></div><p class="scan-why"><code>MultiRowRangeFilter</code> jumps from one range to the next. It is better than an OR of <code>RowFilter</code>s, which reads all rows between the ranges. <code>FuzzyRowFilter</code> also jumps, but each key part must have a fixed length. It is a good choice for a salted key when you know the part after the salt.</p></article>
+<h3 class="subhead">Part 4 · Test a filter in the HBase shell</h3>
+<p class="code-intro">The HBase shell is the fastest way to examine a filter before you write Spark code. The <code>FILTER</code> text uses <code>AND</code>, <code>OR</code>, and parentheses. All results below come from the test table.</p>
+<div aria-label="HBase shell: scan filters" class="sample-code" role="region"><div class="code-top">HBASE SHELL · START ROW, STOP ROW, AND FILTERS<span class="code-version">HBase 2.x</span></div><pre># Start row and stop row.
+scan &#x27;payments&#x27;, {STARTROW =&gt; &#x27;01#&#x27;, STOPROW =&gt; &#x27;02#&#x27;}
+scan &#x27;payments&#x27;, {ROWPREFIXFILTER =&gt; &#x27;02#&#x27;, COLUMNS =&gt; [&#x27;d:status&#x27;]}
+
+# AND / OR. The two &quot;true&quot; values are filterIfMissing and latestVersionOnly.
+# Keep the filter text on one line, or join the parts with +.
+scan &#x27;payments&#x27;, {COLUMNS =&gt; [&#x27;d:merchant&#x27;, &#x27;d:status&#x27;],
+  FILTER =&gt; &quot;SingleColumnValueFilter(&#x27;d&#x27;,&#x27;status&#x27;,=,&#x27;binary:SUCCESS&#x27;,true,true) AND &quot; +
+            &quot;(SingleColumnValueFilter(&#x27;d&#x27;,&#x27;merchant&#x27;,=,&#x27;binary:Energy&#x27;,true,true) OR &quot; +
+            &quot;SingleColumnValueFilter(&#x27;d&#x27;,&#x27;merchant&#x27;,=,&#x27;binary:Travel&#x27;,true,true))&quot;}
+# 4 rows: 01#TXN1003, 02#TXN1005, 03#TXN1007, 03#TXN1008
+
+# Row key regex. HBase reads every row in the range.
+scan &#x27;payments&#x27;, {FILTER =&gt; &quot;RowFilter(=,&#x27;regexstring:TXN100[37]$&#x27;)&quot;}
+
+# Keys only: a fast way to list or count row keys.
+scan &#x27;payments&#x27;, {FILTER =&gt; &quot;FirstKeyOnlyFilter() AND KeyOnlyFilter()&quot;}
+</pre></div>
+<div class="troubleshoot"><div class="trouble"><b>Trap 1: a row without the column passes</b><p>Row <code>01#TXN1009</code> had no <code>d:status</code> cell. <code>SingleColumnValueFilter('d','status',=,'binary:SUCCESS')</code> returned it. With <code>filterIfMissing</code> set to <code>true</code>, HBase removed it. Always set <code>filterIfMissing</code> to <code>true</code>.</p></div><div class="trouble"><b>Trap 2: the filter column is not in the scan</b><p>With <code>COLUMNS =&gt; ['d:merchant']</code> and a filter on <code>d:status</code>, the scan returned 0 rows. The filter cannot see a column that the scan does not read. Add the filter column, or use <code>addFamily</code>.</p></div><div class="trouble"><b>Trap 3: PageFilter counts in each region</b><p><code>PageFilter(1)</code> returned 4 rows, one from each region. Use <code>LIMIT =&gt; 1</code> in the shell, <code>Scan.setLimit()</code> in code, or <code>limit()</code> in Spark.</p></div><div class="trouble"><b>Trap 4: ValueFilter removes cells, not rows</b><p><code>ValueFilter(=,'binary:FAILED')</code> returned only the <code>d:status</code> cell of each failed row. The other columns were not in the result. Use <code>SingleColumnValueFilter</code> to keep or remove full rows.</p></div></div>
+<h3 class="subhead">Which method to use</h3>
+<div aria-label="Decision table; scroll on small screens" class="map-wrap" role="region" tabindex="0"><table class="scan-table"><thead><tr><th>You need</th><th>PySpark DataFrame (hbase-spark)</th><th>Native HBase scan</th><th>HBase read</th></tr></thead><tbody><tr><td>One row or a list of rows</td><td><code>row_key == k</code>, joined with <code>|</code></td><td><code>Get</code></td><td>Only those rows</td></tr><tr><td>One key range or prefix</td><td><code>&gt;=</code> and <code>&lt;</code>, or <code>startswith()</code></td><td><code>withStartRow</code> / <code>withStopRow</code></td><td>Only the range</td></tr><tr><td>Several key ranges</td><td>Ranges joined with <code>|</code></td><td><code>MultiRowRangeFilter</code></td><td>Only the ranges</td></tr><tr><td>Known key part after a salt</td><td>One range for each salt bucket</td><td><code>FuzzyRowFilter</code></td><td>Only matching keys</td></tr><tr><td>Rows with a column value</td><td>Key range <code>&amp;</code> value test</td><td>Start/stop row + <code>SingleColumnValueFilter</code></td><td>The range; sends matches</td></tr><tr><td>Rows with value A or value B</td><td><code>(a) | (b)</code> on value columns</td><td><code>FilterList(MUST_PASS_ONE)</code></td><td>Full range; sends matches</td></tr><tr><td>Key test OR value test</td><td>Two reads + <code>unionByName</code></td><td>Two scans</td><td>Avoid: full scan</td></tr><tr><td>Numeric comparison</td><td><code>cast()</code> (Spark applies it)</td><td>Store sortable values</td><td>Full range; sends all</td></tr></tbody></table></div>
+<div class="troubleshoot"><div class="trouble"><b>ClassNotFoundException: SparkSQLPushDownFilter</b><p>The RegionServers do not have the connector jars. Install them on every RegionServer and restart, or set <code>hbase.spark.pushdown.columnfilter</code> to <code>False</code>. The error <code>NoClassDefFoundError: scala/Enumeration</code> means that the Scala 2.12 library is not on the RegionServer classpath.</p></div><div class="trouble"><b>NoClassDefFoundError: org/slf4j/impl/StaticLoggerBinder</b><p><code>hbase-spark</code> 1.0.1 expects SLF4J 1.x. Spark 3.5 uses SLF4J 2.x. In the test, the fix was to add <code>log4j-slf4j-impl</code> from the HBase <code>lib/client-facing-thirdparty</code> folder to <code>--jars</code>.</p></div><div class="trouble"><b>The filter is in PushedFilters, but the job is slow</b><p><code>PushedFilters</code> shows what Spark offered. It does not show what HBase used. Examine the read request count of each region in the HBase UI before and after the job.</p></div><div class="trouble"><b>The result has the wrong rows</b><p>HBase compares bytes. Examine the type in <code>hbase.columns.mapping</code> and the bytes that the writer stored. Text numbers and negative binary numbers do not sort as numbers.</p></div></div>
+</section>
 <section aria-labelledby="example-title" id="example">
-<div class="section-head"><span class="section-num join-num">13 / PRACTICAL</span><h2 id="example-title">Realistic example: daily payment report</h2></div>
+<div class="section-head"><span class="section-num join-num">14 / PRACTICAL</span><h2 id="example-title">Realistic example: daily payment report</h2></div>
 <p class="section-intro">This example uses an imaginary payment service. The values show how the systems work. The payment records are sample data, not live customer data.</p>
 <div class="story-top">
 <div class="story-brief"><span class="eyebrow">Business requirement · Daily settlement</span><h3>Read payments from HBase.<br/>Make a report with Spark.</h3><p>A payment service stores two million transactions each day. A report must show the total value of successful payments for each merchant. Spark reads the HBase table and makes the report.</p></div>
@@ -1108,7 +1349,7 @@ status_counts.show()
 </div>
 </section>
 <section aria-labelledby="performance-title" class="expanded-section perf-chapter" id="performance">
-<div class="section-head"><span class="section-num spark-num">14 / PERFORMANCE</span><h2 id="performance-title">Spark performance: bad way and better way</h2></div>
+<div class="section-head"><span class="section-num spark-num">15 / PERFORMANCE</span><h2 id="performance-title">Spark performance: bad way and better way</h2></div>
 <p class="section-intro">These 14 cases use the payment system in this guide. Each case shows a poor pattern and a better pattern. Use the Spark UI to confirm the result on your cluster. The examples show possible costs. They do not claim measured speed improvements.</p><p class="version-inline">Version: poor and better code samples use the Spark 3.5.0 API. Use Spark 3.5.9 documentation to check options. Benchmark on your own cluster.</p>
 <div aria-label="Performance decision sequence" class="perf-summary" role="group">
 <div><b>01 · Observe</b><span>Find the slow job, stage, and task.</span></div>
@@ -1585,7 +1826,7 @@ partition_counts.show()
 </code></pre></div><div class="perf-metrics"><div><strong>Time</strong><span>Job and stage duration</span></div><div><strong>Network</strong><span>Shuffle read and write</span></div><div><strong>Memory</strong><span>Spill and GC time</span></div><div><strong>Balance</strong><span>Median and max task time</span></div><div><strong>Source</strong><span>Input bytes and scan filters</span></div><div><strong>Output</strong><span>Result rows and file count</span></div></div><div class="note green"><b>Test method.</b> Use equal input data, the same Spark resources, and the same expected output. Run warm-up tests when they are relevant. Compare multiple runs. The Spark UI shows which resource needs attention. A code change can help one workload and harm another.</div></div>
 <h3 class="subhead">Official reference</h3><p class="perf-source">These examples use the Apache Spark 3.5.9 <a href="https://spark.apache.org/docs/3.5.9/sql-performance-tuning.html" rel="noopener noreferrer" target="_blank">SQL performance tuning guide</a>, <a href="https://spark.apache.org/docs/3.5.9/tuning.html" rel="noopener noreferrer" target="_blank">Spark tuning guide</a>, and <a href="https://spark.apache.org/docs/3.5.9/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrame.collect.html" rel="noopener noreferrer" target="_blank">PySpark collect() reference</a>. HBase scan pushdown depends on the installed connector.</p></section>
 <section aria-labelledby="summary-title" id="summary">
-<div class="section-head"><span class="section-num spark-num">15 / RECAP</span><h2 id="summary-title">Complete Spark + HBase glossary</h2></div>
+<div class="section-head"><span class="section-num spark-num">16 / RECAP</span><h2 id="summary-title">Complete Spark + HBase glossary</h2></div>
 <p class="section-intro">Use these short definitions when you read Spark code, logs, or the Spark UI. Each example uses the payment system in this guide.</p><h3 class="subhead">Application and processes</h3><div class="diagram" style="padding:0;overflow-x:auto"><table class="comparison"><thead><tr><th>Term</th><th>Simple meaning</th><th>Payment example</th></tr></thead><tbody><tr><td>Application</td><td>A user program with a driver and executors.</td><td>One daily payment-report run.</td></tr><tr><td>Driver</td><td>A process that plans jobs and schedules tasks.</td><td>Plans the report stages.</td></tr><tr><td>SparkSession</td><td>The entry point for structured Spark operations.</td><td>The <code>spark</code> object.</td></tr><tr><td>Cluster manager</td><td>A service that allocates cluster resources.</td><td>YARN can allocate executors.</td></tr><tr><td>ResourceManager</td><td>The YARN service that gives containers to applications.</td><td>Puts the report in a queue and gives it space.</td></tr><tr><td>NodeManager</td><td>The YARN agent that starts containers on one node.</td><td>Starts an executor on a core node.</td></tr><tr><td>Container</td><td>A fixed quantity of memory and vCPUs on one node.</td><td>6 GiB and 2 vCPUs for one executor.</td></tr><tr><td>ApplicationMaster</td><td>The first container of a YARN application. It asks for the other containers.</td><td>Asks YARN for the report executors.</td></tr><tr><td>Executor</td><td>A process that runs tasks and stores cached data.</td><td>Reads partitions and calculates totals.</td></tr><tr><td>Core / slot</td><td>Task execution capacity in an executor.</td><td>Two allocated cores allow about two CPU tasks at once.</td></tr></tbody></table></div><h3 class="subhead">Computation and data</h3><div class="diagram" style="padding:0;overflow-x:auto"><table class="comparison"><thead><tr><th>Term</th><th>Simple meaning</th><th>Payment example</th></tr></thead><tbody><tr><td>DataFrame</td><td>A distributed table with a schema.</td><td>The payment rows and amount columns.</td></tr><tr><td>RDD</td><td>A lower-level distributed collection.</td><td>A possible low-level input scan.</td></tr><tr><td>Partition</td><td>A logical part of a dataset.</td><td>One of four input partitions.</td></tr><tr><td>Transformation</td><td>An operation that defines a new dataset.</td><td>Filter status = SUCCESS.</td></tr><tr><td>Action</td><td>An operation that requests a result or output.</td><td><code>show()</code>.</td></tr><tr><td>Lazy evaluation</td><td>Spark delays much of the work until needed.</td><td>Build the report plan first.</td></tr><tr><td>Job</td><td>A computation started to produce a result.</td><td>Compute the report.</td></tr><tr><td>Stage</td><td>A set of tasks separated by dependencies.</td><td>Scan stage; merge stage.</td></tr><tr><td>Task</td><td>One scheduled unit of execution.</td><td>Read the partition for region R1.</td></tr><tr><td>DAG</td><td>The graph of computation dependencies.</td><td>Read → filter → group → result.</td></tr><tr><td>Lineage</td><td>The steps used to recompute lost data.</td><td>Read and filter again after a failure.</td></tr></tbody></table></div><h3 class="subhead">Shuffles and optimisation</h3><div class="diagram" style="padding:0;overflow-x:auto"><table class="comparison"><thead><tr><th>Term</th><th>Simple meaning</th><th>Payment example</th></tr></thead><tbody><tr><td>Shuffle</td><td>Redistribution of data between partitions.</td><td>Move partial totals by merchant.</td></tr><tr><td>Wide dependency</td><td>An operation that needs multiple parent partitions.</td><td>The merchant aggregation.</td></tr><tr><td>Narrow dependency</td><td>An operation with limited parent partitions.</td><td>Filter inside an input partition.</td></tr><tr><td>Repartition</td><td>Make a new partition layout, usually with a shuffle.</td><td>Change to eight partitions.</td></tr><tr><td>Coalesce</td><td>Usually reduce partitions without a full shuffle.</td><td>Reduce eight partitions to four.</td></tr><tr><td>Skew</td><td>Uneven data or uneven work.</td><td>One merchant has most of the records.</td></tr><tr><td>Broadcast join</td><td>Distribute a small table to executors.</td><td>Send a 50-row merchant lookup.</td></tr><tr><td>AQE</td><td>Use runtime statistics to adjust some plan steps.</td><td>Merge small shuffle partitions.</td></tr><tr><td>Logical plan</td><td>The operations that a query needs.</td><td>Filter and aggregate.</td></tr><tr><td>Physical plan</td><td>The operations Spark selects to execute.</td><td>Scan and hash aggregate.</td></tr><tr><td>Pushdown</td><td>Apply a supported filter in the source.</td><td>HBase can filter rows before transfer.</td></tr></tbody></table></div><h3 class="subhead">Storage, memory, and streams</h3><div class="diagram" style="padding:0;overflow-x:auto"><table class="comparison"><thead><tr><th>Term</th><th>Simple meaning</th><th>Payment example</th></tr></thead><tbody><tr><td>Parquet</td><td>A column-based file format.</td><td>S3 report export.</td></tr><tr><td>Storage partition</td><td>A file or table layout based on a key.</td><td>Folder <code>dt=2026-10-03</code>.</td></tr><tr><td>Cache / persist</td><td>Keep reusable data in storage.</td><td>Reuse successful payment rows.</td></tr><tr><td>Spill</td><td>Write intermediate data to disk under memory pressure.</td><td>A large group can spill.</td></tr><tr><td>Checkpoint</td><td>Save a recovery point to reliable storage.</td><td>Store streaming query progress.</td></tr><tr><td>Micro-batch</td><td>One small batch of new stream input.</td><td>Process recent payment events.</td></tr><tr><td>Watermark</td><td>A limit for late events in supported stateful operations.</td><td>Manage a time-window state.</td></tr><tr><td>Spark UI</td><td>A web view of jobs, stages, tasks, and metrics.</td><td>Find a slow scan task.</td></tr></tbody></table></div><h3 class="subhead">HBase and Spark connection</h3><div class="diagram" style="padding:0;overflow-x:auto"><table class="comparison"><thead><tr><th>Term</th><th>Simple meaning</th><th>Payment example</th></tr></thead><tbody><tr><td>Row key</td><td>The ordered identifier for an HBase row.</td><td><code>01#TXN1003</code>.</td></tr><tr><td>Region</td><td>A row-key range of an HBase table.</td><td>Region R2.</td></tr><tr><td>RegionServer</td><td>A process that serves assigned regions.</td><td>RegionServer A.</td></tr><tr><td>Region split</td><td>An operation that makes two daughter regions.</td><td>Split R2 into R2a and R2b.</td></tr><tr><td>InputSplit</td><td>A description of one unit of input scan work.</td><td>Read one region with TableInputFormat in this example.</td></tr><tr><td>WAL / MemStore</td><td>HBase write log and memory buffer.</td><td>Process a payment write.</td></tr><tr><td>HFile / compaction</td><td>A storage file and an operation that merges storage files.</td><td>Organise stored cells.</td></tr></tbody></table></div> <div class="takeaway">
 <div><small>REMEMBER · SPARK</small><strong>Application → Jobs → Stages → Tasks</strong><span style="display:block;font-size:12px;margin-top:8px">One task processes one stage partition.</span></div>
 <div><small>REMEMBER · HBASE</small><strong>Table → Regions → RegionServers</strong></div>
